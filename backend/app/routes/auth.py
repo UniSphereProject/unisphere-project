@@ -30,7 +30,6 @@ def create_user(payload:auth.Users,db: Session = Depends(get_db)):
     name=payload.name,
     email=payload.email,
     password=hash_pass,
-    stream=payload.stream
     )
     user.otp = OTP(
         code=otp_code,

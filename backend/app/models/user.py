@@ -21,10 +21,13 @@ class User(Base,TimestampMixin):
     password=Column(String,primary_key=False,nullable=False)
     role=Column(SQLEnum(UserRoles), nullable=False, default="student")
     is_verified= Column(Boolean, nullable=False, default=False)
-    stream=Column(String,nullable=False)#later it will be Enum after the stream are fixed
     otp=relationship("OTP", back_populates="user",cascade="all, delete-orphan",uselist=False)
-
-
+    student_profile = relationship(
+        "StudentDetail",
+        back_populates="user",
+        uselist=False,  #  One-to-one
+        cascade="all, delete-orphan"
+    )
 
 
 

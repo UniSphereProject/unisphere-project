@@ -7,7 +7,6 @@ class Users(BaseModel):
     name:str
     email:EmailStr
     password:str
-    stream:str
 class UserOut(BaseModel):
     name:str
     id:int
