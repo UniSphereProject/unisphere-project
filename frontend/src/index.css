@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@theme {
+  --color-unisphere-orange: #FF4500;
+  --color-unisphere-orange-hover: #e03d00;
+  --color-unisphere-dark: #111111;
+  --color-unisphere-light: #FFFFFF;
+}
+*{
+  box-sizing: border-box;
+ 
+}
+.root{
+  margin: 0%;
+}
