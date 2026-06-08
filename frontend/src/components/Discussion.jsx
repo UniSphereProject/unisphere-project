@@ -42,7 +42,7 @@ const Discussion = (props) => {
   };
 
   return (
-    <div className="  p-4 border border-gray-200 rounded-xl shadow-lg bg-white m-4 hover:shadow-md transition mx-auto w-full max-w-xl border-l-4 border-orange-500  ml-16 md:ml-125">
+    <div className="  p-4 border border-gray-200 rounded-xl shadow-lg bg-white m-4 hover:shadow-md transition mx-auto w-full max-w-xl border-l-4 border-orange-400  ml-16 md:ml-125">
       {/* User */}
       <p className="text-sm  text-orange-600 font-medium mb-3">{props.user}</p>
 
