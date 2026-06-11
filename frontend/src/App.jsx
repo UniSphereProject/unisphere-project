@@ -5,6 +5,7 @@ import Forgetpw from "./pages/Forgetpw";
 import Register from "./pages/Register";
 import Notice from "./pages/Notice";
 import Notes from "./pages/Notes";
+import Tryregister from "./pages/Register";
 const App=()=>{
   return(
    
@@ -12,7 +13,7 @@ const App=()=>{
       <Route path="/" element={<Login/>} />
       <Route path="/home" element={<Home/>} />
       <Route path='/forgetpw' element={<Forgetpw/>}/>
-      <Route path="/register" element={<Register/>} />
+      <Route path="/register" element={<Tryregister/>} />
       <Route path="/notice" element={<Notice/>} />
        <Route path="/notes" element={<Notes/>} />
 
