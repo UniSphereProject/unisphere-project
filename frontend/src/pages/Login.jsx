@@ -42,10 +42,12 @@ const Login = () => {
     
   };
 
+
   return (
     <>
-      <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-sm">
+    <div className="flex justify-center mt-10 "> 
+        <div className="flex min-h-full max-w-md w-full  flex-col justify-center px-6 py-12 lg:px-12 rounded-3xl shadow-xl p-8 border border-gray-100">
+        <div className="sm:mx-auto sm:w-full sm:max-w-sm ">
           <img
             src="/blackglobe.png"
             alt="UniSphere"
@@ -63,7 +65,7 @@ const Login = () => {
                 htmlFor="email"
                 className="block text-sm/6 font-medium text-gray-900"
               >
-                Email address
+                Email 
               </label>
               <div className="mt-2">
                 <input
@@ -71,8 +73,11 @@ const Login = () => {
                   type="email"
                   name="email"
                   required
-                  autocomplete="email"
-                  className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                  autoComplete
+                  ="email"
+                  placeholder="student@pu.edu.np"
+                  className="block w-full rounded-xl bg-gray-50 px-3.5 py-2.5 text-base 
+                  text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
@@ -101,8 +106,10 @@ const Login = () => {
                   type="password"
                   name="password"
                   required
-                  autoComplete="current-password"
-                  className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                  autoComplete
+                  ="current-password"
+                  placeholder="Min. 8 characters"
+                  className="block   placeholder:text-gray-400 w-full rounded-xl bg-gray-50 px-3.5 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
@@ -111,7 +118,7 @@ const Login = () => {
             <div>
               <button
                 type="submit"
-                className="flex w-full justify-center rounded-md bg-unisphere-orange px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-unisphere-orange-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:cursor-pointer"
+                className="flex w-full justify-center rounded-xl bg-unisphere-orange px-3 py-3 text-sm/6 font-semibold text-white shadow-xs hover:bg-unisphere-orange-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:cursor-pointer"
               >
                 Log in
               </button>
@@ -129,6 +136,8 @@ const Login = () => {
           </p>
         </div>
       </div>
+    </div>
+    
     </>
   );
 };
