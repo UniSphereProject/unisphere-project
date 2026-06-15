@@ -1,4 +1,4 @@
-# Auth Service Backend
+# Main Backend
 
 ## Environment Variables (.env)
 
