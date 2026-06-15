@@ -1,17 +1,9 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import axios from "axios";
 import { User } from "lucide-react";
-import {Link} from'react-router-dom'
+import { Link } from "react-router-dom";
 
-{
-  /* 
-      yo euta custom component ho input lina lai
-      input lai multiple choti type garda redundant hunxa so euta
-      common reusuable component banaideko
-  */
-}
-
+// Reusable input field
 const Field = ({
   id,
   label,
@@ -23,222 +15,210 @@ const Field = ({
   placeholder,
 }) => (
   <div className="flex flex-col gap-1.5">
-    <label
-      htmlFor={id}
-      className="text-sm font-semibold text-gray-700 tracking-wide"
-    >
+    <label htmlFor={id} className="text-sm font-semibold text-gray-700">
       {label}
     </label>
+
     <input
       id={id}
       name={id}
-      label={label}
       type={type}
       value={value}
       onChange={onChange}
       autoComplete={autoComplete}
       required={required}
       placeholder={placeholder}
-      className="px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900
+      className="px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm
                  outline-none transition
-                 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 focus:bg-white
-                 placeholder:text-gray-400"
+                 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 focus:bg-white"
     />
   </div>
 );
 
-
 const Tryregister = () => {
-  const [profilePic, setProfilePic] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [err, setErr] = useState("");
 
- 
-   const handleSubmit=async(e)=>{
-    e.preventDefault()
-    setErr('')
+  const emailRegex = /^[A-Za-z0-9._%+-]+@(student\.)?pu\.edu\.np$/;
 
-if(password !== confirmPassword){
-  setErr('Passwords must match!')
-  return
-}
-if(password.length < 8){
-setErr('Password must be atleast 8 characters')
-return
-}
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
+    setErr("");
+    setSuccess(false);
 
-    const formData=new FormData()
-    if(profilePic) formData.append("profilepic",profilePic)
-    formData.append("username",username)
-    formData.append("email",email)
-    formData.append("password",password)
+    // validation
+    if (!name || !email || !password || !confirmPassword) {
+      setErr("All fields are required");
+      return;
+    }
+
+    if (!emailRegex.test(email)) {
+      setErr("Email must be User@student.pu.edu.np or @pu.edu.np");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErr("Passwords do not match");
+      return;
+    }
+
+    if (password.length < 8) {
+      setErr("Password must be at least 8 characters");
+      return;
+    }
+
+    const data = {
+      name,
+      email,
+      password,
+    };
 
     try {
-      setLoading(true)
-       const res=await axios.post("http://localhost:8000/api/auth/register",formData, { headers: { "Content-Type": "multipart/form-data" } })
-      setSuccess(true)
-      console.log(res)
-      
+      setLoading(true);
+
+      const res = await axios.post(
+        "http://localhost:8000/api/auth/register",
+        data,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log(res.data);
+      setSuccess(true);
+
+      // optional reset
+      setName("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+
     } catch (error) {
-       setErr(error.response?.data?.message || "Something went wrong. Please try again.");
-       setSuccess(false)
-    } finally{
-      setLoading(false)
+      console.log(error.response?.data);
+
+      const backendError =
+        error.response?.data?.detail;
+
+      if (Array.isArray(backendError)) {
+        setErr(backendError.map((e) => e.msg).join(", "));
+      } else {
+        setErr(backendError || "Something went wrong");
+      }
+
+    } finally {
+      setLoading(false);
     }
-   
+  };
 
-
-}
-
-const handleImageChange=(e)=>{
-const file=e.target.files[0]
-if(file){
-setProfilePic(file)
-setPreview(URL.createObjectURL(file)) // yesko kam vaneko img ,server ma pathauna aghi nai ui ma image dekhaune[before the image is stored in db.]
-}
-
-
-}
-
-  
   return (
-    <>
-    
-  <div className="min-h-screen  flex items-center justify-center p-4">
-    <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border">
 
-      
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Register</h1>
-        <p className="text-gray-500 mt-2">
-          Be a part of Unisphere
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-5">
-
-        {/* Profile Picture */}
-        <div className="flex flex-col items-center gap-3">
-          <label
-            htmlFor="profilepic"
-            className="cursor-pointer"
-          >
-            <div className="w-24 h-24 rounded-full border-4 border-orange-100 overflow-hidden flex items-center justify-center bg-gray-50 hover:border-orange-300 transition">
-              {preview ? (
-                <img
-                  src={preview}
-                  alt="profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User className="w-10 h-10 text-gray-400" />
-              )}
-            </div>
-          </label>
-
-          <input
-            type="file"
-            id="profilepic"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="hidden"
-          />
-
-          <span className="text-sm text-gray-500">
-            Upload Profile Picture
-          </span>
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">Register</h1>
+          <p className="text-gray-500 mt-2">Be a part of Unisphere</p>
         </div>
 
-        <Field
-          id="username"
-          label="Username"
-          type="text"
-          value={username}
-          placeholder="eg. Hari Bahadur Dhungana"
-          required
-          autoComplete="username"
-          onChange={(e) => setUsername(e.target.value)}
-        />
+        <form onSubmit={handleSubmit} className="space-y-5">
 
-        <Field
-          id="email"
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="student@pu.edu.np"
-          required
-          autoComplete="email"
-        />
+          {/* Avatar placeholder (no upload anymore) */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-24 h-24 rounded-full border-4 border-orange-100 flex items-center justify-center bg-gray-50">
+              <User className="w-10 h-10 text-gray-400" />
+            </div>
+            <span className="text-sm text-gray-500">
+              Profile picture will be added later
+            </span>
+          </div>
 
-        <Field
-          id="password"
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Min. 8 characters"
-          required
-          autoComplete="new-password"
-        />
+          <Field
+            id="name"
+            label="Full Name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Hari Bahadur Dhungana"
+            required
+          />
 
-        <Field
-          id="confirmPassword"
-          label="Confirm Password"
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          placeholder="Repeat your password"
-          required
-          autoComplete="new-password"
-        />
+          <Field
+            id="email"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="user@student.pu.edu.np or user@pu.edu.np"
+            required
+          />
 
-        {err && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-            {err}
-          </p>
-        )}
+          <Field
+            id="password"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Min 8 characters"
+            required
+          />
 
-        {success && (
-          <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-            Account created successfully!
-          </p>
-        )}
+          <Field
+            id="confirmPassword"
+            label="Confirm Password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Repeat password"
+            required
+          />
 
-        <button
-          type="submit"
-          disabled={loading}
-          className={`w-full py-3 rounded-xl text-white font-semibold transition-all
-            ${
-              loading
+          {/* Error */}
+          {err && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              {err}
+            </p>
+          )}
+
+          {/* Success */}
+          {success && (
+            <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+              Account created successfully! OTP sent to email.
+            </p>
+          )}
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-3 rounded-xl text-white font-semibold transition
+              ${loading
                 ? "bg-orange-300 cursor-not-allowed"
                 : "bg-orange-600 hover:bg-orange-700 active:scale-95"
-            }`}
-        >
-          {loading ? "Creating Account..." : "Create Account"}
-        </button>
-      </form>
+              }`}
+          >
+            {loading ? "Creating Account..." : "Create Account"}
+          </button>
 
-      <p className="text-center text-sm text-gray-500 mt-6">
-        Already have an account?{" "}
-        <Link
-          to="/"
-          className="text-orange-600 font-semibold hover:underline"
-        >
-          Sign in
-        </Link>
-      </p>
+        </form>
+
+        <p className="text-center text-sm text-gray-500 mt-6">
+          Already have an account?{" "}
+          <Link to="/" className="text-orange-600 font-semibold hover:underline">
+            Sign in
+          </Link>
+        </p>
+
+      </div>
     </div>
-  </div>
-
-    </>
   );
 };
 
