@@ -1,4 +1,4 @@
-# Auth Service Backend
+# Discussion Forum Backend
 
 ## Environment Variables (.env)
 
@@ -12,6 +12,8 @@ JWT_ALGORITHM=HS256
 BREVO_API_KEY=your_brevo_api_key
 BREVO_SENDER_EMAIL=your_brevo_gmail
 BREVO_SENDER_NAME=Sender Alex
+MODERATOR_EMAIL=moderator@gmail.com
+MODERATOR_PASSWORD=moderator@Pass
 
 ```
 

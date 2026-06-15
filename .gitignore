@@ -5,3 +5,9 @@ ENV/
 .env
 .env.local
 .idea
+app/utils/__pycache__/
+app/schemas/__pycache__/
+app/routes/__pycache__/
+app/models/__pycache__/
+*.__pycache__/
+__pycache__

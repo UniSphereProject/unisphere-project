@@ -1,6 +1,5 @@
 from datetime import datetime
 from app.models.database import Base
-
 from sqlalchemy import String, Index, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 class OTP(Base):
