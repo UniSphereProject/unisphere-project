@@ -1,15 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.orm import Session
-
 from app.models.database import get_db
 from app.models.student_detail import StudentDetail
 from app.models.user import User
 from app.schemas.student_detail import CreateUserProfile
 from app.utils.oauth2 import get_current_user
+from imagekitio import ImageKit
+
+from app.utils.config import settings
 
 router = APIRouter(
     prefix="/student",
     tags=["Student Detail"]
+)
+
+imagekit = ImageKit(
+    private_key=settings.PRIVATE_KEY
 )
 
 @router.post("/profile", status_code=status.HTTP_201_CREATED)
@@ -69,3 +75,30 @@ def update_student_profile(
     db.commit()
     db.refresh(profile)
     return profile
+
+@router.post("/upload-image")
+async def upload_image(
+        file: UploadFile = File(...),
+        current_user: User = Depends(get_current_user)
+):
+    file_bytes = await file.read()
+    file_name = f"profile_{current_user.id}.jpg"
+
+    upload = imagekit.files.upload(
+        file=file_bytes,
+        file_name=file_name,
+        folder="/profiles"
+    )
+
+    return {
+        "url": upload.url,
+        "file_id": upload.file_id
+    }
+
+@router.get("/image/{file_id}")
+def get_image(file_id: str):
+    url = f"{settings.URL_ENDPOINT.rstrip('/')}/{file_id}"
+
+    return {
+        "url": url
+    }

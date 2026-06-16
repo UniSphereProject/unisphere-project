@@ -1,8 +1,12 @@
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response, Cookie
+from datetime import datetime, timedelta
+from app.models.token import RefreshToken
+from app.utils.config import settings
 
 from app.schemas.auth import UserLogin
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -60,10 +64,9 @@ def verify_otp(id: int, payload: otp.Otp, db: Session = Depends(get_db)):
     return {"message": "OTP Verified"}
 @router.post("/forgot-password")
 def forgot_password(payload: otp.RequestOtp, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == payload.email).first()
-    generic_message = {"message": "If  email exists, an OTP has been sent."}
+    user = db.query(models.user.User).filter(models.user.User.email == payload.email).first()
     if not user:
-        return generic_message
+        return {"Message":"User Does not Exist."}
     otp_code = generate_otp()
     if user.otp:
         user.otp.code = otp_code
@@ -85,7 +88,7 @@ def forgot_password(payload: otp.RequestOtp, db: Session = Depends(get_db)):
         return {"message": "OTP processed", "email_delivery": "sent" if delivered else "failed"}
 @router.post("/verify-otp")
 def verify_otp(payload: otp.VerifyOtp, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == payload.email).first()
+    user = db.query(models.user.User).filter(models.user.User.email == payload.email).first()
     invalid_exception = HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="Invalid or expired OTP"
@@ -94,12 +97,9 @@ def verify_otp(payload: otp.VerifyOtp, db: Session = Depends(get_db)):
         raise invalid_exception
     if user.otp.code != payload.code:
         raise invalid_exception
-    if user.otp.used_flag:
-        raise invalid_exception
-
     if datetime.utcnow() > user.otp.expiry_time:
         raise invalid_exception
-    user.otp.used_flag = True
+    db.delete(user.otp)
     db.commit()
     reset_token = oauth2.create_access_token(
         data={"user_id": user.id, "scope": "password_reset"}
@@ -107,19 +107,118 @@ def verify_otp(payload: otp.VerifyOtp, db: Session = Depends(get_db)):
     )
     return {"reset_token": reset_token, "message": "OTP verified successfully."}
 
-@router.post("/login",response_model=auth.Token)
-def log_in(user_credentials:UserLogin,db: Session = Depends(get_db)):
-    user = db.query(models.user.User).filter(
-        models.user.User.email == user_credentials.email).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Invalid Credentials")
-    if not verify(user_credentials.password,user.password):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN ,
-                            detail="Invalid Credentials")
-    # create a token
-    access_token=oauth2.create_access_token(data={"user_id":user.id})
-    return {"access_token": access_token, "token_type": "bearer"}
+@router.post("/login")
+def login(
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.email == form_data.username).first()
+    if not user or not verify(form_data.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid credentials"
+        )
+    access_token = oauth2.create_access_token(data={"user_id": str(user.id)})
+    refresh_token = oauth2.create_refresh_token(data={"user_id": str(user.id)})
+    db_token = RefreshToken(
+        user_id    = user.id,
+        token      = refresh_token,
+        expires_at = datetime.utcnow() + timedelta(
+                         minutes=settings.REFRESH_TOKEN_EXPIRE
+                     )
+    )
+    db.add(db_token)
+    db.commit()
+
+    oauth2.set_refresh_cookie(response, refresh_token)
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
+
+@router.post("/refresh")
+def refresh_token(
+    response: Response,
+    refresh_token: str = Cookie(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Called automatically by frontend when access token expires (401).
+    Browser sends the httpOnly cookie automatically — frontend has no
+    direct access to the token string itself.
+    """
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No refresh token. Please log in."
+        )
+
+    user_id = oauth2.verify_refresh_token(refresh_token)
+    db_token = db.query(RefreshToken).filter(
+        RefreshToken.token   == refresh_token,
+        RefreshToken.user_id == user_id,
+        RefreshToken.revoked == False
+    ).first()
+
+    if not db_token:
+
+        db.query(RefreshToken).filter(
+            RefreshToken.user_id == user_id
+        ).update({"revoked": True})
+        db.commit()
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token reuse detected. All sessions terminated. Please log in."
+        )
+
+    if db_token.expires_at < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token expired. Please log in again."
+        )
+
+    db_token.revoked = True
+    db.commit()
+
+    new_access_token  = oauth2.create_access_token(data={"user_id": user_id})
+    new_refresh_token = oauth2.create_refresh_token(data={"user_id": user_id})
+
+    new_db_token = RefreshToken(
+        user_id    = user_id,
+        token      = new_refresh_token,
+        expires_at = datetime.utcnow() + timedelta(
+                         minutes=settings.REFRESH_TOKEN_EXPIRE
+                     )
+    )
+    db.add(new_db_token)
+    db.commit()
+
+    oauth2.set_refresh_cookie(response, new_refresh_token)
+
+    return {
+        "access_token": new_access_token,
+        "token_type": "bearer"
+    }
+
+
+@router.post("/logout")
+def logout(
+    response: Response,
+    refresh_token: str = Cookie(None),
+    db: Session = Depends(get_db)
+):
+
+    if refresh_token:
+        db.query(RefreshToken).filter(
+            RefreshToken.token == refresh_token
+        ).update({"revoked": True})
+        db.commit()
+
+    oauth2.clear_refresh_cookie(response)
+    return {"message": "Logged out successfully"}
 
 
 

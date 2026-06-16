@@ -5,6 +5,8 @@ from app.models.database import engine,Base
 
 from app.routes import auth
 from app.utils.logger import get_logger
+from app.routes import student_detail
+
 logger = get_logger(__name__)
 app = FastAPI()
 try:
@@ -15,13 +17,15 @@ except SQLAlchemyError as exc:
     logger.error("Failed to create tables: %s", exc)
 
 app.include_router(auth.router)
-
+app.include_router(student_detail.router)
 
 
 
 @app.get("/",tags=["Root"])
 async def root():
     return {"message":"API is Running!!!"}
-
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
