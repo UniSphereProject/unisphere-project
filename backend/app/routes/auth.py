@@ -48,8 +48,12 @@ def create_user(payload:auth.Users,db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
-    return {"message": "OTP processed", "email_delivery": "sent" if delivered else "failed"}
-
+    return {
+        "id": user.id,
+        "email": user.email,
+        "message": "OTP processed",
+        "email_delivery": "sent" if delivered else "failed"
+    }
 @router.post("/verify/{id}")
 def verify_otp(id: int, payload: otp.Otp, db: Session = Depends(get_db)):
     user = db.query(models.user.User).filter(models.user.User.id == id).first()
