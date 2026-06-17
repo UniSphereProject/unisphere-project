@@ -60,7 +60,7 @@ const Tryregister = () => {
     }
 
     if (!emailRegex.test(email)) {
-      setErr("Email must be User@student.pu.edu.np or @pu.edu.np");
+      setErr("Email must be user@student.pu.edu.np or @pu.edu.np");
       return;
     }
 

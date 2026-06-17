@@ -2,6 +2,7 @@ import axios from "axios";
 import React from "react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -10,6 +11,7 @@ const Login = () => {
   const[loadingText,setLoadingText]=useState('Loading...')
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,7 +26,7 @@ const Login = () => {
       console.log(res.data);
 
       if (res.data.token) {
-        localStorage.setItem("token", res.data.token);
+        login(res.data.token);
         navigate("/home");
       }
     } catch (err) {
