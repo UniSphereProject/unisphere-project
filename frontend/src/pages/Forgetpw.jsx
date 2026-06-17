@@ -11,7 +11,7 @@ const Forgetpw = () => {
   const handleSubmit = async () => {
     try {
       const res = await axios.post(
-        "http://localhost:8000/api/auth/verify-otp",
+        "https://unisphere-project.onrender.com/api/auth/verify-otp",
         {
           email,
           otp,

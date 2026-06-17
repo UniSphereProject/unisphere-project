@@ -3,7 +3,7 @@ import axios from "axios";
 import { User } from "lucide-react";
 import { Link } from "react-router-dom";
 
-// Reusable input field
+
 const Field = ({
   id,
   label,
@@ -84,7 +84,7 @@ const Tryregister = () => {
       setLoading(true);
 
       const res = await axios.post(
-        "http://localhost:8000/api/auth/register",
+        "https://unisphere-project.onrender.com/api/auth/register",
         data,
         {
           headers: {
@@ -121,7 +121,7 @@ const Tryregister = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
 
         {/* Header */}
         <div className="text-center mb-8">

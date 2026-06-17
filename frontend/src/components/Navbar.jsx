@@ -1,5 +1,5 @@
 
-import { Search,Bell } from 'lucide-react'
+import { Search,Bell,User } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 const Navbar = () => {
 
@@ -46,6 +46,7 @@ const Navbar = () => {
     <button className='hover:cursor-pointer hover:bg-gray-100 p-2 rounded-full' ><Search size={20}/></button>
 </div>
     <button className="p-2 rounded-full hover:bg-gray-100 cursor-pointer" > <Bell size={22}/></button>
+    <button className="p-2 rounded-full hover:bg-gray-100 cursor-pointer" > <User size={22}/></button>
    
    </nav>
 
