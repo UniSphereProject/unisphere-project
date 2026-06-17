@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from sqlalchemy.exc import SQLAlchemyError
+from starlette.middleware.cors import CORSMiddleware
 
 from app.models.database import engine,Base
 
@@ -9,6 +10,12 @@ from app.routes import student_detail
 
 logger = get_logger(__name__)
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 try:
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables checked/created successfully")
