@@ -114,11 +114,11 @@ def verify_otp(payload: otp.VerifyOtp, db: Session = Depends(get_db)):
 @router.post("/login")
 def login(
     response: Response,
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    data:UserLogin,
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).filter(User.email == form_data.username).first()
-    if not user or not verify(form_data.password, user.password):
+    user = db.query(User).filter(User.email == data.email).first()
+    if not user or not verify(data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid credentials"
