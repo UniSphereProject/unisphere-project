@@ -27,6 +27,8 @@ class User(Base,TimestampMixin):
         uselist=False,  #  One-to-one
         cascade="all, delete-orphan"
     )
+    refresh_tokens = relationship("RefreshToken", back_populates="user")
+
 
 
 

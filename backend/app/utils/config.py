@@ -11,8 +11,6 @@ class Settings(BaseSettings):
     BREVO_API_KEY:str
     BREVO_SENDER_EMAIL:str
     BREVO_SENDER_NAME:str
-    MODERATOR_EMAIL:str
-    MODERATOR_PASSWORD:str
 
     model_config = {
         "env_file": ".env",

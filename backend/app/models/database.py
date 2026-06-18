@@ -1,23 +1,17 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy import create_engine, NullPool
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 from app.utils.config import settings
 
-SQLALCHEMY_DATABASE_URL = (
-    f"postgresql://{settings.DB_USERNAME}:{settings.DB_PASSWORD}"
-    f"@{settings.DB_HOSTNAME}/{settings.DB_NAME}"
-)
-
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-SessionLocal = sessionmaker(autoflush=False, autocommit=False, bind=engine)
-
-
-class Base(DeclarativeBase):
-    """Single declarative base for all ORM models."""
+SQLALCHEMY_DATABASE_URL=f'postgresql://{settings.DB_USERNAME}:{settings.DB_PASSWORD}@{settings.DB_HOSTNAME}/{settings.DB_NAME}'
+engine=create_engine(SQLALCHEMY_DATABASE_URL,poolclass=NullPool,)
+sessionLocal=sessionmaker(autoflush=False,autocommit=False,bind=engine )
+Base=declarative_base()
 
 
 def get_db():
-    db = SessionLocal()
+    db=sessionLocal()
     try:
         yield db
     finally:
