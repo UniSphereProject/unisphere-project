@@ -123,6 +123,8 @@ def login(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid credentials"
         )
+    if not user.is_verified:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Please verify email first")
     access_token = oauth2.create_access_token(data={"user_id": str(user.id)})
     refresh_token = oauth2.create_refresh_token(data={"user_id": str(user.id)})
     db_token = RefreshToken(
