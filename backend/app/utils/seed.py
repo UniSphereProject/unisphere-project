@@ -9,7 +9,7 @@ import uuid
 
 from sqlalchemy import select
 
-from app.models.database import SessionLocal
+from app.models.database import sessionLocal
 from app.models.communities import Community
 
 MODERATOR_ID = 1 #now hard-coded later on will be changed
@@ -30,7 +30,7 @@ ROOT_COMMUNITIES: list[tuple[str, str, str]] = [
 
 def create_community() -> None:
     """Insert root communities that don't already exist."""
-    db = SessionLocal()
+    db = sessionLocal()
     try:
         created = 0
         for slug, name, kind in ROOT_COMMUNITIES:
