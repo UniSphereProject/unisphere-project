@@ -167,12 +167,12 @@ const storedToken = localStorage.getItem("token");
                     required
                     autoComplete="current-password"
                     placeholder="Min. 8 characters"
-                      className="block w-full rounded-xl bg-gray-50 px-3.5 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                    className="block   placeholder:text-gray-400  pr-12 w-full rounded-xl bg-gray-50 px-3.5 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
                     onChange={(e) => setPassword(e.target.value)}
                    
                   />
 
-                 <button  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500" onClick={()=>setShowPassword(!showPassword)}> 
+                 <button type="button " className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500" onClick={()=>setShowPassword(!showPassword)}> 
                  { showPassword ? <EyeOff/> : <Eye />} 
                  </button>  
 
