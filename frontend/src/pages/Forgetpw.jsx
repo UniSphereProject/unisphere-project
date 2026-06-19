@@ -5,13 +5,14 @@ import { useLocation } from "react-router-dom";
 const Forgetpw = () => {
   const location = useLocation();
   const email = location.state?.email;
+    const BASE_URL=import.meta.env.VITE_BACKEND_API_BASE_URL;
 
   const [otp, setOtp] = useState("");
 
   const handleSubmit = async () => {
     try {
       const res = await axios.post(
-        "https://unisphere-project.onrender.com/api/auth/verify-otp",
+        '${BASE_URL}/api/auth/verify-otp',
         {
           email,
           otp,

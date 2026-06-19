@@ -79,12 +79,13 @@ const Tryregister = () => {
       email,
       password,
     };
+        const BASE_URL=import.meta.env.VITE_BACKEND_API_BASE_URL;
 
     try {
       setLoading(true);
 
       const res = await axios.post(
-        "https://unisphere-project.onrender.com/api/auth/register",
+        `${BASE_URL}/api/auth/register`,
         data,
         {
           headers: {

@@ -12,6 +12,7 @@ const Login = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { login } = useAuth();
+      const BASE_URL=import.meta.env.VITE_BACKEND_API_BASE_URL;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,7 +20,7 @@ const Login = () => {
     
   setError(null);
     try {
-      const res = await axios.post("https://unisphere-project.onrender.com/api/auth/login", {
+      const res = await axios.post(`${BASE_URL}/api/auth/login`, {
         email,
         password,
       });
@@ -48,7 +49,7 @@ const Login = () => {
     try {
      
       let res = await axios.post(
-        "https://unisphere-project.onrender.com/api/auth/forgot-password",
+        '${BASE_URL}/api/auth/forgot-password',
         { email },
       );
       navigate("/forgetpw", { state: { email } });
