@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { User } from "lucide-react";
+import { User ,Eye,EyeOff} from "lucide-react";
 import { Link } from "react-router-dom";
 
 
@@ -40,7 +40,8 @@ const Tryregister = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
+const [showPassword,setShowPassword]=useState(false)
+const [showCpassword,setShowCpassword]=useState(false)
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [err, setErr] = useState("");
@@ -161,26 +162,39 @@ const Tryregister = () => {
             placeholder="user@student.pu.edu.np or user@pu.edu.np"
             required
           />
-
-          <Field
+<div className="mt-2 relative">
+   <Field
             id="password"
             label="Password"
-            type="password"
+            type={showPassword? 'text': 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Min 8 characters"
             required
           />
 
-          <Field
+           <button type="button " className="absolute right-3 top-1/2 -translate-y-1/8 text-sm text-gray-500" onClick={()=>setShowPassword(!showPassword)}> 
+                 { showPassword ? <EyeOff/> : <Eye />} 
+                 </button>  
+          </div>
+         
+<div className="mt-2 relative">
+    <Field
             id="confirmPassword"
             label="Confirm Password"
-            type="password"
+            type={showCpassword? 'text': 'password'}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Repeat password"
             required
           />
+
+           <button type="button " className="absolute right-3 top-1/2 -translate-y-1/8 text-sm text-gray-500" onClick={()=>setShowCpassword(!showCpassword)}> 
+                 { showCpassword ? <EyeOff/> : <Eye />} 
+                 </button>  
+
+</div>
+        
 
           {/* Error */}
           {err && (
