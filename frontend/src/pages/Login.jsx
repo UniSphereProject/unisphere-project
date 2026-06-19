@@ -172,7 +172,7 @@ const storedToken = localStorage.getItem("token");
                    
                   />
 
-                 <button type="button " className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500" onClick={()=>setShowPassword(!showPassword)}> 
+                 <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500" onClick={()=>setShowPassword(!showPassword)}> 
                  { showPassword ? <EyeOff/> : <Eye />} 
                  </button>  
 

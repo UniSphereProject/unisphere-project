@@ -173,7 +173,7 @@ const [showCpassword,setShowCpassword]=useState(false)
             required
           />
 
-           <button type="button " className="absolute right-3 top-1/2 -translate-y-1/8 text-sm text-gray-500" onClick={()=>setShowPassword(!showPassword)}> 
+           <button type="button" className="absolute right-3 top-1/2 -translate-y-1/8 text-sm text-gray-500" onClick={()=>setShowPassword(!showPassword)}> 
                  { showPassword ? <EyeOff/> : <Eye />} 
                  </button>  
           </div>
@@ -189,7 +189,7 @@ const [showCpassword,setShowCpassword]=useState(false)
             required
           />
 
-           <button type="button " className="absolute right-3 top-1/2 -translate-y-1/8 text-sm text-gray-500" onClick={()=>setShowCpassword(!showCpassword)}> 
+           <button type="button" className="absolute right-3 top-1/2 -translate-y-1/8 text-sm text-gray-500" onClick={()=>setShowCpassword(!showCpassword)}> 
                  { showCpassword ? <EyeOff/> : <Eye />} 
                  </button>  
 
