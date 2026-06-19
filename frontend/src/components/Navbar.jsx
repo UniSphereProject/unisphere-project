@@ -1,7 +1,23 @@
 
-import { Search,Bell,User } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { Search,Bell,User,LogOut } from 'lucide-react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import axios from 'axios'
+import { useAuth } from '../context/AuthContext'
 const Navbar = () => {
+  const navigate = useNavigate()
+  const { logout } = useAuth()
+  const BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${BASE_URL}/api/auth/logout`, {}, { withCredentials: true })
+    } catch (error) {
+      console.log(error)
+    } finally {
+      logout()
+      navigate("/", { replace: true })
+    }
+  }
 
   return (
    <>
@@ -47,6 +63,14 @@ const Navbar = () => {
 </div>
     <button className="p-2 rounded-full hover:bg-gray-100 cursor-pointer" > <Bell size={22}/></button>
     <button className="p-2 rounded-full hover:bg-gray-100 cursor-pointer" > <User size={22}/></button>
+    <button
+      type="button"
+      onClick={handleLogout}
+      className="flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
+    >
+      <LogOut size={18} />
+      <span>Logout</span>
+    </button>
    
    </nav>
 

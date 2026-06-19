@@ -8,7 +8,16 @@ import Forgetpw from "./pages/Forgetpw";
 import Notice from "./pages/Notice";
 import Notes from "./pages/Notes";
 import Tryregister from "./pages/Register";
+const RootRoute = () => {
+  const { token } = useAuth();
+  const storedToken = localStorage.getItem("token");
 
+  if (token || storedToken) {
+    return <Navigate to="/home" replace />;
+  }
+
+  return <Login />;
+};
 const App = () => {
   return (
     <AuthProvider>

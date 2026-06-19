@@ -1,7 +1,6 @@
 import axios from "axios";
-import React from "react";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
@@ -11,15 +10,22 @@ const Login = () => {
   const[loadingText,setLoadingText]=useState('Loading...')
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const { login } = useAuth();
-const storedToken = localStorage.getItem("token");
+  const { login, token } = useAuth();
+  const storedToken = localStorage.getItem("token");
+  const authToken = token || storedToken;
 
-  if (token || storedToken) {
+  useEffect(() => {
+    if (authToken) {
+      navigate("/home", { replace: true });
+    }
+  }, [authToken, navigate]);
+
+  if (authToken) {
     return <Navigate to="/home" replace />;
   }
-
+  
   const BASE_URL=import.meta.env.VITE_BACKEND_API_BASE_URL;
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -32,9 +38,16 @@ const storedToken = localStorage.getItem("token");
       });
       console.log(res.data);
 
-      if (res.data.token) {
-        login(res.data.token);
-        navigate("/home",{ replace: true });
+      const backendToken =
+        res.data?.token ||
+        res.data?.access_token ||
+        res.data?.accessToken ||
+        res.data?.data?.token;
+
+      if (backendToken) {
+        login(backendToken);
+      } else {
+        throw new Error("Login succeeded but no token was returned.");
       }
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Try again.")
@@ -55,7 +68,7 @@ const storedToken = localStorage.getItem("token");
     try {
      
       let res = await axios.post(
-        '${BASE_URL}/api/auth/forgot-password',
+        `${BASE_URL}/api/auth/forgot-password`,
         { email },
       );
       navigate("/forgetpw", { state: { email } });
@@ -138,6 +151,7 @@ const storedToken = localStorage.getItem("token");
                   </label>
                   <div className="text-sm">
                     <button
+                      type="button"
                       onClick={handleForgetPw}
                       className="font-semibold text-unisphere-orange hover:text-unisphere-orange-hover hover:cursor-pointer"
                     >
@@ -153,7 +167,7 @@ const storedToken = localStorage.getItem("token");
                     required
                     autoComplete="current-password"
                     placeholder="Min. 8 characters"
-                    className="block   placeholder:text-gray-400 w-full rounded-xl bg-gray-50 px-3.5 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                      className="block w-full rounded-xl bg-gray-50 px-3.5 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
                     onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
