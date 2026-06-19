@@ -12,7 +12,13 @@ const Login = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { login } = useAuth();
-      const BASE_URL=import.meta.env.VITE_BACKEND_API_BASE_URL;
+const storedToken = localStorage.getItem("token");
+
+  if (token || storedToken) {
+    return <Navigate to="/home" replace />;
+  }
+
+  const BASE_URL=import.meta.env.VITE_BACKEND_API_BASE_URL;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,7 +34,7 @@ const Login = () => {
 
       if (res.data.token) {
         login(res.data.token);
-        navigate("/home");
+        navigate("/home",{ replace: true });
       }
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Try again.")
