@@ -1,20 +1,22 @@
 import axios from "axios";
 import React from "react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import{Eye,EyeOff } from 'lucide-react'
+import { Link, useNavigate ,Navigate} from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const[showPassword,setShowPassword]=useState(false)
   const [loading, setIsLoading] = useState(false);
   const[loadingText,setLoadingText]=useState('Loading...')
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login ,token} = useAuth();
 const storedToken = localStorage.getItem("token");
 
-  if (token || storedToken) {
+  if (token ||  storedToken) {
     return <Navigate to="/home" replace />;
   }
 
@@ -55,7 +57,7 @@ const storedToken = localStorage.getItem("token");
     try {
      
       let res = await axios.post(
-        '${BASE_URL}/api/auth/forgot-password',
+        `${BASE_URL}/api/auth/forgot-password`,
         { email },
       );
       navigate("/forgetpw", { state: { email } });
@@ -118,6 +120,7 @@ const storedToken = localStorage.getItem("token");
                     id="email"
                     type="email"
                     name="email"
+                    value={email}
                     required
                     autoComplete="email"
                     placeholder="student@pu.edu.np"
@@ -146,16 +149,27 @@ const storedToken = localStorage.getItem("token");
                   </div>
                 </div>
                 <div className="mt-2">
-                  <input
+                  <div className="mt-2 relative">
+
+                     <input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     name="password"
+                    value={password}
                     required
                     autoComplete="current-password"
                     placeholder="Min. 8 characters"
                     className="block   placeholder:text-gray-400 w-full rounded-xl bg-gray-50 px-3.5 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
                     onChange={(e) => setPassword(e.target.value)}
+                   
                   />
+
+                 <button  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500" onClick={()=>setShowPassword(!showPassword)}> 
+                 { showPassword ? <EyeOff/> : <Eye />} 
+                 </button>  
+
+                  </div>
+                 
                 </div>
               </div>
 
@@ -163,6 +177,7 @@ const storedToken = localStorage.getItem("token");
                 <button
                   type="submit"
                   className="flex w-full justify-center rounded-xl bg-unisphere-orange px-3 py-3 text-sm/6 font-semibold text-white shadow-xs hover:bg-unisphere-orange-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:cursor-pointer"
+                   disabled={loading}
                 >
                   Log in
                 </button>
