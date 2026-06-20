@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     PUBLIC_KEY:str
     PRIVATE_KEY:str
     URL_ENDPOINT:str
+    MODERATOR_EMAIL:str
+    MODERATOR_PASSWORD:str
     model_config = {
         "env_file": ".env",
     }
