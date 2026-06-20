@@ -79,7 +79,8 @@ def update_student_profile(
 @router.post("/upload-image")
 async def upload_image(
         file: UploadFile = File(...),
-        current_user: User = Depends(get_current_user)
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
     file_bytes = await file.read()
     file_name = f"profile_{current_user.id}.jpg"
@@ -89,16 +90,24 @@ async def upload_image(
         file_name=file_name,
         folder="/profiles"
     )
+    current_user.profile_image_url = upload.url
+    current_user.profile_image_file_id = upload.file_id
+    db.commit()
+    db.refresh(current_user)
 
     return {
         "url": upload.url,
         "file_id": upload.file_id
     }
 
-@router.get("/image/{file_id}")
-def get_image(file_id: str):
-    url = f"{settings.URL_ENDPOINT.rstrip('/')}/{file_id}"
+@router.get("/image")
+def get_my_image(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    image = db.query(User).filter(User.id == current_user.id).first()
 
-    return {
-        "url": url
-    }
+    if not image:
+        raise HTTPException(status_code=404, detail="No profile image found")
+
+    return {"url": image.url, "file_id": image.file_id}

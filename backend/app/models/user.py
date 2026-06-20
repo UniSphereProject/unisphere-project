@@ -29,6 +29,8 @@ class User(Base,TimestampMixin):
         cascade="all, delete-orphan"
     )
     refresh_tokens = relationship("RefreshToken", back_populates="user")
+    profile_image_url = Column(String, nullable=True)
+    profile_image_file_id = Column(String, nullable=True)
 
 
 
