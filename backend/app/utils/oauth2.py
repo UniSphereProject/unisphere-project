@@ -2,15 +2,14 @@
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from fastapi import Depends, status, HTTPException, Cookie, Response
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from app import schemas, models
 from app.utils.config import settings
 from app.models.database import get_db
 
-oauth_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
+oauth_scheme = HTTPBearer()
 SECRET_KEY         = settings.SECRET_KEY
 REFRESH_SECRET_KEY = settings.REFRESH_SECRET_KEY
 ALGORITHM          = settings.ALGORITHM
@@ -56,8 +55,8 @@ def verify_access_token(token: str, credentials_exception):
         id = payload.get("user_id")
         if id is None:
             raise credentials_exception
-
-        token_data = schemas.auth.TokenData(id=str(id))
+        scope = payload.get("scope")
+        token_data = schemas.auth.TokenData(id=str(id), scope=scope)
     except JWTError:
         raise credentials_exception
     return token_data
@@ -109,9 +108,10 @@ def clear_refresh_cookie(response: Response):
         samesite="lax"
     )
 def get_current_user(
-    token: str = Depends(oauth_scheme),
+    credentials: HTTPAuthorizationCredentials = Depends(oauth_scheme),
     db: Session = Depends(get_db)
 ):
+    token = credentials.credentials
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

@@ -6,7 +6,7 @@ from app.models.token import RefreshToken
 from app.utils.config import settings
 
 from app.schemas.auth import UserLogin
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -20,6 +20,10 @@ from app.utils import oauth2
 from app.utils.oauth2 import oauth_scheme
 from app.utils.otp_email import send_email_via_brevo
 from app.utils.security import verify, generate_otp, hash_password
+
+from app.utils.oauth2 import get_current_user
+
+from app.schemas.otp import ChangePass
 
 router=APIRouter(
     prefix="/api/auth",
@@ -74,10 +78,9 @@ def forgot_password(payload: otp.RequestOtp, db: Session = Depends(get_db)):
     otp_code = generate_otp()
     if user.otp:
         user.otp.code = otp_code
-        user.otp.used_flag = False
         user.otp.expiry_time = datetime.utcnow() + timedelta(minutes=15)
     else:
-        new_otp = models.OTP(
+        new_otp = models.otp.OTP(
             user_id=user.id,
             code=otp_code,
             expiry_time=datetime.utcnow() + timedelta(minutes=15)
@@ -87,7 +90,7 @@ def forgot_password(payload: otp.RequestOtp, db: Session = Depends(get_db)):
         delivered = send_email_via_brevo(
             to_email=user.email,
             subject="Reset Your Password",
-            html_content=f"<html><body>Use this OTP to reset your password: <b>{otp}</b></body></html>",
+            html_content=f"<html><body>Use this OTP to reset your password: <b>{otp_code}</b></body></html>",
         )
         return {"message": "OTP processed", "email_delivery": "sent" if delivered else "failed"}
 @router.post("/verify-otp")
@@ -229,12 +232,13 @@ def logout(
 
 
 
-@router.patch("/change-password")
+@router.patch("/reset-password")
 def change_password(
         payload: otp.ResetPass,
-        token: str = Depends(oauth_scheme),
+        credentials: HTTPAuthorizationCredentials = Depends(oauth_scheme),
         db: Session = Depends(get_db)
 ):
+    token = credentials.credentials
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -243,7 +247,7 @@ def change_password(
     token_data = oauth2.verify_access_token(token, credentials_exception)
     if token_data.scope != "password_reset":
         raise HTTPException(status_code=403, detail="Invalid token type.")
-    user = db.query(models.User).filter(models.User.id == token_data.user_id).first()
+    user = db.query(models.user.User).filter(models.user.User.id == token_data.id).first()
     if not user:
         raise credentials_exception
     hashed_pass = hash_password(payload.new_password)
@@ -251,7 +255,18 @@ def change_password(
     db.commit()
     return {"message": "Password successfully updated. You may now log in."}
 
+@router.patch("/change-password")
+def change_password(
+        payload: ChangePass,
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
+    if not verify(payload.current_password, current_user.password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
 
+    current_user.password = hash_password(payload.new_password)
+    db.commit()
+    return {"message": "Password changed successfully."}
 
 
 
