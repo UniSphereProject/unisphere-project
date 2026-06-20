@@ -269,8 +269,8 @@ const Profile = () => {
                   {isEditing ? (
                     <form onSubmit={handleSave} className="space-y-4">
                       {[
-                        { id: "stream", label: "Stream / Faculty", placeholder: "e.g. Science & Technology" },
-                        { id: "program", label: "Program / Course", placeholder: "e.g. BE Computer Engineering" },
+                        { id: "stream", label: "Stream", placeholder: "e.g. Engineering" },
+                        { id: "program", label: "Program", placeholder: "e.g. Software" },
                         { id: "batch", label: "Batch / Year", placeholder: "e.g. 2022" },
                       ].map(({ id, label, placeholder }) => (
                         <div key={id} className="flex flex-col gap-1.5">
