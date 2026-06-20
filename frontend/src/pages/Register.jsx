@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { User ,Eye,EyeOff} from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link ,Navigate} from "react-router-dom";
 
 
 const Field = ({
@@ -103,6 +103,8 @@ const [showCpassword,setShowCpassword]=useState(false)
       setEmail("");
       setPassword("");
       setConfirmPassword("");
+
+     
 
     } catch (error) {
       console.log(error.response?.data);

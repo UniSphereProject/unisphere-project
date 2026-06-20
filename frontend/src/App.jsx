@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-
+import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Forgetpw from "./pages/Forgetpw";
@@ -26,13 +26,19 @@ const App = () => {
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Tryregister />} />
         <Route path="/forgetpw" element={<Forgetpw />} />
-
-        {/* protected routes - must be logged in, else redirected to "/" */}
-        <Route element={<ProtectedRoute />}>
+ 
+        {/* protected routes - must be logged in, else redirected to "/" 
+        
+          <Route element={<ProtectedRoute />}>
+           </Route>
+        
+        */}
+      
           <Route path="/home" element={<Home />} />
+           <Route path="/profile" element={<Profile />} />
           <Route path="/notice" element={<Notice />} />
           <Route path="/notes" element={<Notes />} />
-        </Route>
+       
       </Routes>
     </AuthProvider>
   );

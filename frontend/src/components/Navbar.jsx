@@ -62,7 +62,18 @@ const Navbar = () => {
     <button className='hover:cursor-pointer hover:bg-gray-100 p-2 rounded-full' ><Search size={20}/></button>
 </div>
     <button className="p-2 rounded-full hover:bg-gray-100 cursor-pointer" > <Bell size={22}/></button>
-    <button className="p-2 rounded-full hover:bg-gray-100 cursor-pointer" > <User size={22}/></button>
+
+     <NavLink
+      to="/profile"
+      className={({ isActive }) =>
+        `p-2 rounded-full hover:bg-gray-100 cursor-pointer transition-colors ${
+          isActive ? "text-orange-500 bg-orange-50" : "text-gray-700"
+        }`
+      }
+    >
+      <User size={22} />
+    </NavLink>
+
     <button
       type="button"
       onClick={handleLogout}

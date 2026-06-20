@@ -12,7 +12,7 @@ const Forgetpw = () => {
   const handleSubmit = async () => {
     try {
       const res = await axios.post(
-        '${BASE_URL}/api/auth/verify-otp',
+        `${BASE_URL}/api/auth/verify-otp`,
         {
           email,
           otp,
