@@ -9,6 +9,8 @@ from imagekitio import ImageKit
 
 from app.utils.config import settings
 
+
+
 router = APIRouter(
     prefix="/student",
     tags=["Student Detail"]
@@ -105,9 +107,9 @@ def get_my_image(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    image = db.query(User).filter(User.id == current_user.id).first()
+    user = db.query(User).filter(User.id == current_user.id).first()
 
-    if not image:
+    if not user.profile_image_url:
         raise HTTPException(status_code=404, detail="No profile image found")
 
-    return {"url": image.url, "file_id": image.file_id}
+    return {"url": user.profile_image_url, "file_id": user.profile_image_file_id}
