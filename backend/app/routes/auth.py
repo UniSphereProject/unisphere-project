@@ -34,6 +34,10 @@ router=APIRouter(
 def create_user(payload:auth.Users,db: Session = Depends(get_db)):
     otp_code=generate_otp()
     hash_pass=hash_password(payload.password)
+
+    user=db.query(User).filter(User.email==payload.email).first()
+    if user:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="User Already exists")
     user=User(
     name=payload.name,
     email=payload.email,
@@ -62,19 +66,19 @@ def create_user(payload:auth.Users,db: Session = Depends(get_db)):
 def verify_otp(id: int, payload: otp.Otp, db: Session = Depends(get_db)):
     user = db.query(models.user.User).filter(models.user.User.id == id).first()
     if not user:
-        return {"error": "User not found"}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User Does not Exist")
     if payload.otp != user.otp.code:
-        return {"error": "Invalid OTP"}
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid or incorrect OTP code.")
     user.is_verified = True
     user.otp=None
     db.commit()
     db.refresh(user)
-    return {"message": "OTP Verified"}
+    return {"message": "OTP Verified. You may Login In Now."}
 @router.post("/forgot-password")
 def forgot_password(payload: otp.RequestOtp, db: Session = Depends(get_db)):
     user = db.query(models.user.User).filter(models.user.User.email == payload.email).first()
     if not user:
-        return {"Message":"User Does not Exist."}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User Does not Exist")
     otp_code = generate_otp()
     if user.otp:
         user.otp.code = otp_code
