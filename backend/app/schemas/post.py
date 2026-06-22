@@ -48,7 +48,7 @@ class PostOut(BaseModel):
     title: str
     body: str | None
     community_id: int
-    author_id: int
+    user_id: int
     post_type: str
     status: Optional[str] = None
     created_at: datetime

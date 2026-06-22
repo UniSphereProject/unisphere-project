@@ -11,3 +11,7 @@ app/routes/__pycache__/
 app/models/__pycache__/
 *.__pycache__/
 __pycache__
+BACKEND_API_DOCS.md
+BACKEND_REVIEW_README.md
+*.py[cod]
+__pycache__/

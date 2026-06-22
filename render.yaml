@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: smart-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+    healthCheckPath: /health

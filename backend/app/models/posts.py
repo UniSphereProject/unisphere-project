@@ -24,7 +24,6 @@ class Post(Base,TimestampMixin):
         Integer, ForeignKey("communities.id", ondelete="CASCADE"),
         nullable=False, index=True,
     )
-    author_id: Mapped[int] = mapped_column(Integer, nullable=False)
     # Mirrors community.kind at creation time so the post "remembers" its shape
     # even if the community's kind were ever changed later.
     post_type: Mapped[str] = mapped_column(String(30), nullable=False)
@@ -33,5 +32,14 @@ class Post(Base,TimestampMixin):
     is_anonymous: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     image_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)     # lost_found location
+    reactions=relationship("PostReaction",back_populates="post")
+    comments=relationship("PostComment",back_populates="post")
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=True
+    )
+    user = relationship("User", back_populates="post_entries")
+
+
 
 

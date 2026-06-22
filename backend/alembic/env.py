@@ -7,6 +7,8 @@ from alembic import context
 from app.models.database import Base
 from app.models import otp,student_detail,token,user
 from app.utils.config import settings
+from app.models import posts,communities
+from app.models.post_interaction import PostReaction, PostComment, CommentReaction
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

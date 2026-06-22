@@ -112,7 +112,7 @@ def create_post(
         title=data["title"],
         body=data["body"],
         community_id=community.id,
-        author_id=current_user.id,
+        user_id=current_user.id,
         post_type=post_type,
         status=data.get("status"),
         is_anonymous=data.get("is_anonymous", False),
@@ -147,7 +147,7 @@ def update_post(
     """
     post = get_post(db, post_id)
 
-    if post.author_id != current_user.id:
+    if post.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the author may edit this post.")
 
     changes = payload.model_dump(exclude_unset=True)
@@ -167,7 +167,7 @@ def delete_post(
 ) -> None:
     """Delete a post. Only the author may delete (otherwise 403)."""
     post = get_post(db, post_id)
-    if post.author_id != current_user.id:
+    if post.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the author may delete this post.")
     db.delete(post)
     db.commit()

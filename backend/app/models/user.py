@@ -30,6 +30,14 @@ class User(Base,TimestampMixin):
     refresh_tokens = relationship("RefreshToken", back_populates="user")
     profile_image_url = Column(String, nullable=True)
     profile_image_file_id = Column(String, nullable=True)
+    reactions = relationship("PostReaction", back_populates="user")
+    comments = relationship("PostComment", back_populates="user")
+    comment_reactions = relationship("CommentReaction", back_populates="user")
+    post_entries = relationship("Post", back_populates="user")
+
+
+
+
 
 
 
