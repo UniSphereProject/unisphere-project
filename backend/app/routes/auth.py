@@ -69,7 +69,7 @@ def verify_otp(id: int, payload: otp.Otp, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User Does not Exist")
     if payload.otp != user.otp.code:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid or incorrect OTP code.")
-    if datetime.now(timezone.utc) > user.otp.expiry_time:
+    if datetime.utcnow() > user.otp.expiry_time:
         raise HTTPException(status_code=400, detail="OTP expired. Request a new one.")
     user.is_verified = True
     user.otp=None
