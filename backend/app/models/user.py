@@ -33,8 +33,11 @@ class User(Base,TimestampMixin):
     reactions = relationship("PostReaction", back_populates="user")
     comments = relationship("PostComment", back_populates="user")
     comment_reactions = relationship("CommentReaction", back_populates="user")
-    post_entries = relationship("Post", back_populates="user")
-
+    post_entries = relationship(
+        "Post",
+        back_populates="user",
+        foreign_keys="Post.user_id"
+    )
 
 
 

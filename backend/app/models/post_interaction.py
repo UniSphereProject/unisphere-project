@@ -22,12 +22,14 @@ class PostReaction(Base,TimestampMixin):
         Integer,
         ForeignKey("posts.id", ondelete="CASCADE"),
         nullable=False,
+        index=True
     )
 
     user_id = Column(
         Integer,
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
+        index=True
     )
     reaction = Column(Enum(ReactionType), nullable=False)
     __table_args__ = (
@@ -49,11 +51,13 @@ class PostComment(Base,TimestampMixin):
         Integer,
         ForeignKey("posts.id", ondelete="CASCADE"),
         nullable=False,
+        index=True
     )
     user_id = Column(
         Integer,
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
+        index=True
     )
     parent_id = Column(
         Integer,
@@ -66,8 +70,8 @@ class PostComment(Base,TimestampMixin):
     user = relationship("User", back_populates="comments")
     # Still inside PostComment
     replies = relationship("PostComment", back_populates="parent")
-    parent = relationship("PostComment", back_populates="replies", remote_side=[id])
-    reactions= relationship("CommentReaction", back_populates="comment")
+    parent = relationship("PostComment", back_populates="replies",remote_side="PostComment.id")
+    reactions= relationship("CommentReaction", back_populates="comment",cascade="all, delete-orphan")
 
 class CommentReaction(Base,TimestampMixin):
     __tablename__ = "comment_reactions"
@@ -77,12 +81,14 @@ class CommentReaction(Base,TimestampMixin):
         Integer,
         ForeignKey("post_comments.id", ondelete="CASCADE"),
         nullable=False,
+        index=True
     )
 
     user_id = Column(
         Integer,
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
+        index=True
     )
     reaction = Column(Enum(ReactionType), nullable=False)
     __table_args__ = (

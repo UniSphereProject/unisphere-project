@@ -1,172 +1,318 @@
-from fastapi import FastAPI, APIRouter, status, Depends, HTTPException
-
+from __future__ import annotations
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db
 from app.models.posts import Post
-from app.models.post_interaction import PostReaction, PostComment, CommentReaction
 from app.models.user import User
+from app.schemas.post_interaction import *
 from app.utils.oauth2 import get_current_user
-from app.schemas.post_interaction import Reaction, CommentResponse, CommentCreate
 
-router = APIRouter(
-    prefix="/interact",
-    tags=['Post Interaction']
-)
+from app.models.post_interaction import PostComment
+from app.schemas.post_interaction import PostReactionSummary, ReactionCreate, CommentCreate, CommentAuthor, \
+    CommentFeedOut, CommentReactionSummary
+
+from app.models.post_interaction import PostReaction, CommentReaction
+
+from app.schemas.post_interaction import CommentResponse
+
+router = APIRouter(tags=["Post Interactions"])
+
+
+# ── HELPERS ──────────────────────────────────────────────────────────────────
+
+
+def _get_post_or_404(db: Session, post_id: int) -> Post:
+    post = db.get(Post, post_id)
+    if post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return post
 
 
 
-@router.post("/{post_id}/react/posts")
+
+@router.post("/posts/{post_id}/react", response_model=PostReactionSummary)
 def react_to_post(
     post_id: int,
-    request: Reaction,
+    request: ReactionCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    post_entry = db.query(Post).filter(
-        Post.id == post_id,
-    ).first()
-
-    if not post_entry:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=" Post Not found")
-
-    # check existing reaction
-    existing = db.query(PostReaction).filter(
-        PostReaction.post_id == post_id,
-        PostReaction.user_id == current_user.id,
+    _get_post_or_404(db, post_id)
+    existing = (
+        db.query(PostReaction)
+        .filter(PostReaction.post_id == post_id, PostReaction.user_id == current_user.id)
+        .first()
     )
-    existing_reaction=existing.first()
 
-    if existing_reaction:
-        if existing_reaction.reaction == request.reaction:
-           # raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"It is already reacted as {existing.reaction.value}.")
-            print("Hello")
-            existing.delete(synchronize_session=False)
+    if existing:
+        if existing.reaction == request.reaction.value:
+            db.delete(existing)
             db.commit()
-            return {"Message":f"Reaction {request.reaction.value} Removed"}
         else:
-            existing_reaction.reaction = request.reaction
+            existing.reaction = request.reaction
             db.commit()
-            return {"message": f"Reaction changed to {request.reaction.value}"}
     else:
-        # new reaction
-        new_reaction = PostReaction(
-            post_id=post_id,
-            user_id=current_user.id,
-            reaction=request.reaction.value,
+        db.add(
+            PostReaction(
+                post_id=post_id, user_id=current_user.id, reaction=request.reaction.value
+            )
         )
-        db.add(new_reaction)
         db.commit()
-        return {"message": f"Reaction {request.reaction.value} added."}
+
+    likes = (
+        db.query(func.count(PostReaction.id))
+        .filter(PostReaction.post_id == post_id, PostReaction.reaction == "like")
+        .scalar()
+    ) or 0
+    dislikes = (
+        db.query(func.count(PostReaction.id))
+        .filter(PostReaction.post_id == post_id, PostReaction.reaction == "dislike")
+        .scalar()
+    ) or 0
+    ur = (
+        db.query(PostReaction.reaction)
+        .filter(PostReaction.post_id == post_id, PostReaction.user_id == current_user.id)
+        .first()
+    )
+
+    return PostReactionSummary(
+        likes=likes, dislikes=dislikes, user_reaction=str(ur[0]) if ur else None
+    )
+
+
+@router.get("/posts/{post_id}/reactions", response_model=PostReactionSummary)
+def get_post_reactions(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
+):
+    _get_post_or_404(db, post_id)
+    likes = (
+        db.query(func.count(PostReaction.id))
+        .filter(PostReaction.post_id == post_id, PostReaction.reaction == "like")
+        .scalar()
+    ) or 0
+    dislikes = (
+        db.query(func.count(PostReaction.id))
+        .filter(PostReaction.post_id == post_id, PostReaction.reaction == "dislike")
+        .scalar()
+    ) or 0
+
+    user_reaction = None
+    if current_user:
+        ur = (
+            db.query(PostReaction.reaction)
+            .filter(PostReaction.post_id == post_id, PostReaction.user_id == current_user.id)
+            .first()
+        )
+        if ur:
+            user_reaction = str(ur[0])
+
+    return PostReactionSummary(likes=likes, dislikes=dislikes, user_reaction=user_reaction)
 
 
 
-@router.post("/{post_id}/comment",response_model=CommentResponse)
+
+
+
+
+@router.post("/posts/{post_id}/comments", response_model=CommentResponse)
 def add_comment(
     post_id: int,
-    content: CommentCreate,
+    payload: CommentCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    post_entry = db.query(Post).filter(
-        Post.id == post_id,
-    ).first()
+    _get_post_or_404(db, post_id)
+    if payload.parent_id:
+        parent = db.get(PostComment, payload.parent_id)
+        if not parent or parent.post_id != post_id:
+            raise HTTPException(status_code=400, detail="Invalid parent comment")
 
-    if not post_entry:
-        raise HTTPException(404, "Not found")
-    if content.parent_id:
-        parent_comment = db.query(PostComment).filter(
-            PostComment.id == content.parent_id
-        ).first()
-
-        # Does this parent comment even exist?
-        if not parent_comment:
-            raise HTTPException(404, "Parent comment not found")
-
-        # Does it belong to the SAME post you're replying under?
-        if parent_comment.post_id != post_id:
-            raise HTTPException(400, "Parent comment belongs to a different post")
     comment = PostComment(
         post_id=post_id,
         user_id=current_user.id,
-        content=content.content,
-        is_anonymous=content.is_anonymous,
-        parent_id=content.parent_id,
+        content=payload.content,
+        is_anonymous=payload.is_anonymous,
+        parent_id=payload.parent_id,
     )
     db.add(comment)
     db.commit()
     db.refresh(comment)
 
-    return CommentResponse.from_orm_masked(comment)
+    author = (
+        None
+        if comment.is_anonymous
+        else CommentAuthor(
+            id=current_user.id,
+            name=current_user.name,
+            profile_image_url=current_user.profile_image_url,
+        )
+    )
+    return CommentResponse(
+        id=comment.id,
+        content=comment.content,
+        is_anonymous=comment.is_anonymous,
+        author=author,
+        parent_id=comment.parent_id,
+        created_at=comment.created_at,
+        updated_at=comment.updated_at,
+    )
 
-#Comment React
 
-@router.post("/{comment_id}/react/comments")
+@router.get("/posts/{post_id}/comments", response_model=CommentFeedOut)
+def get_post_comments(
+    post_id: int,
+    limit: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
+):
+    _get_post_or_404(db, post_id)
+    user_id = current_user.id if current_user else None
+
+    items_db = (
+        db.query(PostComment)
+        .filter(
+            PostComment.post_id == post_id,
+            PostComment.parent_id.is_(None),
+        )
+        .order_by(PostComment.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    result = []
+    for item in items_db:
+        likes = (
+            db.query(func.count(CommentReaction.id))
+            .filter(CommentReaction.comment_id == item.id, CommentReaction.reaction == "like")
+            .scalar()
+        ) or 0
+        dislikes = (
+            db.query(func.count(CommentReaction.id))
+            .filter(CommentReaction.comment_id == item.id, CommentReaction.reaction == "dislike")
+            .scalar()
+        ) or 0
+
+        user_reaction = None
+        if user_id:
+            ur = (
+                db.query(CommentReaction.reaction)
+                .filter(CommentReaction.comment_id == item.id, CommentReaction.user_id == user_id)
+                .first()
+            )
+            if ur:
+                user_reaction = str(ur[0])
+
+        replies_db = (
+            db.query(PostComment)
+            .filter(PostComment.parent_id == item.id)
+            .order_by(PostComment.created_at.asc())
+            .limit(3)
+            .all()
+        )
+
+        replies = []
+        for r in replies_db:
+            ra = (
+                None
+                if (r.is_anonymous ) and r.user
+                else CommentAuthor(
+                    id=r.user.id, name=r.user.name, profile_image_url=r.user.profile_image_url
+                )
+            )
+            replies.append(
+                CommentResponse(
+                    id=r.id,
+                    content=r.content,
+                    is_anonymous=r.is_anonymous,
+                    author=ra,
+                    parent_id=r.parent_id,
+                    reaction_summary=CommentReactionSummary(),
+                    created_at=r.created_at,
+                    updated_at=r.updated_at,
+                )
+            )
+
+        author = (
+            None
+            if (item.is_anonymous ) and item.user
+            else CommentAuthor(
+                id=item.user.id, name=item.user.name, profile_image_url=item.user.profile_image_url
+            )
+        )
+        result.append(
+            CommentResponse(
+                id=item.id,
+                content=item.content,
+                is_anonymous=item.is_anonymous,
+                author=author,
+                parent_id=item.parent_id,
+                reaction_summary=CommentReactionSummary(
+                    likes=likes, dislikes=dislikes, user_reaction=user_reaction
+                ),
+                created_at=item.created_at,
+                updated_at=item.updated_at,
+                replies=replies,
+            )
+        )
+
+    return CommentFeedOut(items=result, total_count=len(result))
+
+
+@router.delete("/comments/{comment_id}", status_code=204)
+def delete_comment(
+    comment_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    comment = db.get(PostComment, comment_id)
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    if comment.user_id != current_user.id and str(current_user.role) != "moderator":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    comment.content = "[deleted]"
+    db.commit()
+
+
+@router.post("/comments/{comment_id}/react")
 def react_to_comment(
     comment_id: int,
-    request: Reaction,
+    request: ReactionCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    comment_entry = db.query(PostComment).filter(
-        PostComment.id == comment_id,
-    ).first()
+    comment = db.get(PostComment, comment_id)
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
 
-    if not comment_entry:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=" Comment Not found")
-
-    # check existing reaction
-    existing = db.query(CommentReaction).filter(
-        CommentReaction.comment_id == comment_id,
-        CommentReaction.user_id == current_user.id,
+    existing = (
+        db.query(CommentReaction)
+        .filter(CommentReaction.comment_id == comment_id, CommentReaction.user_id == current_user.id)
+        .first()
     )
-    existing_reaction=existing.first()
 
-    if existing_reaction:
-        if existing_reaction.reaction == request.reaction:
-           # raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"It is already reacted as {existing.reaction.value}.")
-            print("Hello")
-            existing.delete(synchronize_session=False)
+    if existing:
+        if existing.reaction == request.reaction.value:
+            db.delete(existing)
             db.commit()
-            return {"Message":f"Reaction {request.reaction.value} Removed"}
+            msg = "Removed"
         else:
-            existing_reaction.reaction = request.reaction
+            existing.reaction = request.reaction
             db.commit()
-            return {"message": f"Reaction changed to {request.reaction.value}"}
+            msg = "Changed"
     else:
-        # new reaction
-        new_reaction = CommentReaction(
-            comment_id=comment_id,
-            user_id=current_user.id,
-            reaction=request.reaction.value,
+        db.add(
+            CommentReaction(
+                comment_id=comment_id, user_id=current_user.id, reaction=request.reaction.value
+            )
         )
-        db.add(new_reaction)
         db.commit()
-        return {"message": f"Reaction {request.reaction.value} added."}
-@router.post("/{comment_id}/reply", response_model=CommentResponse)
-def reply_to_comment(
-    comment_id: int,
-    content: CommentCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
+        msg = "Added"
 
-    parent_comment = db.query(PostComment).filter(
-        PostComment.id == comment_id
-    ).first()
-
-    if not parent_comment:
-        raise HTTPException(404, "Comment not found")
-
-    reply = PostComment(
-        post_id=parent_comment.post_id,
-        user_id=current_user.id,
-        content=content.content,
-        is_anonymous=content.is_anonymous,
-        parent_id=comment_id,
-    )
-    db.add(reply)
-    db.commit()
-    db.refresh(reply)
-    return CommentResponse.from_orm_masked(reply)
-
+    return {"message": msg}

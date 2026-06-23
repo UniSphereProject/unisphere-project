@@ -41,3 +41,4 @@ class Community(Base, TimestampMixin):
     __table_args__ = (
         UniqueConstraint("parent_id", "slug", name="uq_community_parent_slug"),
     )
+    posts = relationship("Post", back_populates="community")

@@ -12,6 +12,7 @@ from app.routes.post_interaction import router as post_interation_router
 from app.routes import auth
 from app.utils.logger import get_logger
 from app.models.user import User
+from app.models.verification_record import VerificationRecord
 from app.utils.config import settings
 from app.utils.security import hash_password
 from app.utils.seed import create_community
