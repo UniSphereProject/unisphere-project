@@ -1,10 +1,33 @@
+
 import React, { useState } from "react";
 import { ThumbsUp, ThumbsDown, MessageCircle } from "lucide-react";
+import CommentSection from "./CommentSection";
+import mockCommentsData from "../mockCommentsData";
+
+const countTotalComments = (list) => {
+  let count = list.length;
+  for (let c of list) {
+    if (c.replies && c.replies.length > 0) {
+      count += countTotalComments(c.replies);
+    }
+  }
+  return count;
+};
 
 const Discussion = (props) => {
   const [Upcount, setUpcount] = useState(0);
   const [Downcount, setDowncount] = useState(0);
   const [Vote, setVote] = useState(null);
+  const [showComments, setShowComments] = useState(false);
+  const [commentCount, setCommentCount] = useState(() => {
+    const cached = localStorage.getItem(`comments_post_${props.id}`);
+    if (cached) {
+      try {
+        return countTotalComments(JSON.parse(cached));
+      } catch (e) {}
+    }
+    return countTotalComments(mockCommentsData[props.id] || []);
+  });
 
   const handleThumbsUp = () => {
     if (Vote === null) {
@@ -21,9 +44,6 @@ const Discussion = (props) => {
       setVote('up');
     }
   };
-
-
-
 
  const handleThumbsDown = () => {
     if (Vote === null) {
@@ -61,9 +81,11 @@ const Discussion = (props) => {
         />
       )}
 
-      <div className="flex items-center gap-4 text-gray-600">
+      <div className="flex items-center gap-4 text-gray-600 border-b border-gray-50 pb-2">
         <button
-          className="flex items-center gap-1 hover:text-green-600 transition hover:cursor-pointer"
+          className={`flex items-center gap-1 hover:text-green-600 transition hover:cursor-pointer p-1 rounded-md hover:bg-gray-50 ${
+            Vote === "up" ? "text-green-600 font-semibold" : ""
+          }`}
           onClick={handleThumbsUp}
         >
           <ThumbsUp size={18} />
@@ -71,17 +93,33 @@ const Discussion = (props) => {
         </button>
 
         <button
-          className="flex items-center gap-1 hover:text-red-500 transition hover:cursor-pointer"
+          className={`flex items-center gap-1 hover:text-red-500 transition hover:cursor-pointer p-1 rounded-md hover:bg-gray-50 ${
+            Vote === "down" ? "text-red-500 font-semibold" : ""
+          }`}
           onClick={handleThumbsDown}
         >
           <ThumbsDown size={18} />
           <span>{Downcount}</span>
         </button>
 
-        <button className="flex items-center gap-1 hover:text-orange-500 transition hover:cursor-pointer">
+        <button
+          onClick={() => setShowComments(!showComments)}
+          className={`flex items-center gap-1.5 transition hover:cursor-pointer p-1 rounded-md ${
+            showComments ? "text-orange-500 bg-orange-50" : "hover:text-orange-500 hover:bg-gray-50"
+          }`}
+        >
           <MessageCircle size={19} />
+          <span className="text-sm font-medium">{commentCount}</span>
         </button>
       </div>
+
+      {/* Comment Section Panel */}
+      {showComments && (
+        <CommentSection
+          postId={props.id}
+          onCommentCountChange={setCommentCount}
+        />
+      )}
     </div>
   );
 };

@@ -8,8 +8,9 @@ import  Sidebar from "../components/Sidebar";
 
 const Home = () => {
   const display = discussionData.map((post) => (
-    <Discussion
+   <Discussion
       key={post.id}
+      id={post.id}
       user={post.user}
       title={post.title}
       content={post.content}
