@@ -86,6 +86,14 @@ async def upload_image(
 ):
     file_bytes = await file.read()
     file_name = f"profile_{current_user.id}.jpg"
+    ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
+    MAX_SIZE = 10 * 1024 * 1024  # 10MB
+
+    if file.content_type not in ALLOWED_TYPES:
+        raise HTTPException(400, "Only JPEG, PNG, WebP images allowed")
+    content = await file.read()
+    if len(content) > MAX_SIZE:
+        raise HTTPException(400, "Image must be under 10 MB")
 
     upload = imagekit.files.upload(
         file=file_bytes,

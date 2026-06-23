@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, Cookie
 from datetime import datetime, timedelta
@@ -69,6 +69,8 @@ def verify_otp(id: int, payload: otp.Otp, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User Does not Exist")
     if payload.otp != user.otp.code:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid or incorrect OTP code.")
+    if datetime.now(timezone.utc) > user.otp.expiry_time:
+        raise HTTPException(status_code=400, detail="OTP expired. Request a new one.")
     user.is_verified = True
     user.otp=None
     db.commit()
@@ -90,13 +92,13 @@ def forgot_password(payload: otp.RequestOtp, db: Session = Depends(get_db)):
             expiry_time=datetime.utcnow() + timedelta(minutes=15)
         )
         db.add(new_otp)
-        db.commit()
-        delivered = send_email_via_brevo(
-            to_email=user.email,
-            subject="Reset Your Password",
-            html_content=f"<html><body>Use this OTP to reset your password: <b>{otp_code}</b></body></html>",
-        )
-        return {"message": "OTP processed", "email_delivery": "sent" if delivered else "failed"}
+    db.commit()
+    delivered = send_email_via_brevo(
+        to_email=user.email,
+        subject="Reset Your Password",
+        html_content=f"<html><body>Use this OTP to reset your password: <b>{otp_code}</b></body></html>",
+    )
+    return {"message": "OTP processed", "email_delivery": "sent" if delivered else "failed"}
 @router.post("/verify-otp")
 def verify_otp(payload: otp.VerifyOtp, db: Session = Depends(get_db)):
     user = db.query(models.user.User).filter(models.user.User.email == payload.email).first()
