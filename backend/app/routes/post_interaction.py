@@ -16,7 +16,7 @@ router = APIRouter(
 
 
 
-@router.post("/{post_id}/react")
+@router.post("/{post_id}/react/posts")
 def react_to_post(
     post_id: int,
     request: Reaction,
@@ -101,7 +101,7 @@ def add_comment(
 
 #Comment React
 
-@router.post("/{comment_id}/react")
+@router.post("/{comment_id}/react/comments")
 def react_to_comment(
     comment_id: int,
     request: Reaction,

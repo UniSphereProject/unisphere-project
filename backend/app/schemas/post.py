@@ -4,21 +4,17 @@ from datetime import datetime
 from typing import Annotated, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.auth import UserOut
+
 CommunityKind = Literal[
     "discussion", "notes", "complaint", "lost_found", "announcement"
 ]
 ComplaintStatus = Literal["open", "in_progress", "resolved"]
 ItemState = Literal["lost", "found"]
 
+
 class PostCreate(BaseModel):
-    """
-    Payload to create a post.
-
-    Client does NOT send post_type — the server derives it from the target
-    community's kind. Type-specific cross-field validation happens in the
-    router (formerly crud.create_post).
-    """
-
     title: Annotated[str, Field(min_length=1, max_length=300)]
     body: str | None = None
     community_id: int
@@ -30,8 +26,6 @@ class PostCreate(BaseModel):
 
 
 class PostUpdate(BaseModel):
-    """Partial update payload. post_type and community cannot change."""
-
     title: Annotated[str, Field(min_length=1, max_length=300)] | None = None
     body: str | None = None
     status: ComplaintStatus | None = None
@@ -48,7 +42,6 @@ class PostOut(BaseModel):
     title: str
     body: str | None
     community_id: int
-    user_id: int
     post_type: str
     status: Optional[str] = None
     created_at: datetime
@@ -58,11 +51,20 @@ class PostOut(BaseModel):
     image_url: str | None
     location: str | None
 
+    # user_id intentionally omitted — use owner below for identity
+    owner: Optional[UserOut] = None
+
+    @classmethod
+    def model_validate(cls, post, *args, **kwargs):
+        instance = super().model_validate(post, *args, **kwargs)
+        # Mask owner when post is anonymous
+        if not post.is_anonymous and post.user is not None:
+            instance.owner = UserOut.from_orm(post.user)
+        else:
+            instance.owner = None
+        return instance
+
 
 class PostFeedOut(BaseModel):
-    """Cursor-paginated feed response."""
-
     items: list[PostOut]
-    # Opaque base64 cursor; pass it back as ?cursor=... for the next page.
-    # `None` means no more results.
     next_cursor: str | None

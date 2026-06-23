@@ -23,7 +23,6 @@ router = APIRouter(tags=["posts"])
 # Maps a community kind to the fields a post of that kind MUST provide.
 REQUIRED_FIELDS_BY_TYPE: dict[str, list[str]] = {
     "discussion": [],
-    "notes": ["file_url"],
     "complaint": [],            # status defaults to "open" if omitted
     "lost_found": ["item_state"],
     "announcement": [],
@@ -98,7 +97,7 @@ def create_post(
         raise HTTPException(status_code=404, detail="Community not found")
 
     post_type = community.kind  # post mirrors the community's kind
-    if post_type == "announcement" and not current_user.role!="moderator":
+    if post_type == "announcement" and  current_user.role!="moderator":
         raise HTTPException(403, "Only Moderator Can post announcements.")
 
     data = payload.model_dump()
