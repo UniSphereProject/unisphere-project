@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { User ,Eye,EyeOff} from "lucide-react";
-import { Link ,Navigate} from "react-router-dom";
+import { Link ,useNavigate} from "react-router-dom";
 
 
 const Field = ({
@@ -43,16 +43,17 @@ const Tryregister = () => {
 const [showPassword,setShowPassword]=useState(false)
 const [showCpassword,setShowCpassword]=useState(false)
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [err, setErr] = useState("");
 
   const emailRegex = /^[A-Za-z0-9._%+-]+@(student\.)?pu\.edu\.np$/;
+
+  const navigate=useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     setErr("");
-    setSuccess(false);
+   
 
     // validation
     if (!name || !email || !password || !confirmPassword) {
@@ -95,14 +96,20 @@ const [showCpassword,setShowCpassword]=useState(false)
         }
       );
 
-      console.log(res.data);
-      setSuccess(true);
+      console.log(res.data)
 
-      // optional reset
-      setName("");
-      setEmail("");
-      setPassword("");
-      setConfirmPassword("");
+      const registeredEmail = email;
+     
+        navigate(`/verify-otp/${res.data.id}` ,{
+        state:{registeredEmail}
+      })
+    
+
+      //reset
+setName("");
+setEmail("");
+setPassword("");
+setConfirmPassword("");
 
      
 
@@ -124,6 +131,20 @@ const [showCpassword,setShowCpassword]=useState(false)
   };
 
   return (
+
+<>
+
+
+      {loading && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white px-8 py-6 rounded-xl flex items-center gap-3 shadow-lg">
+            <div className="w-5 h-5 border-4 border-gray-300 border-t-orange-500 rounded-full animate-spin"></div>
+            <span className="text-gray-700 font-medium"> Creating Your Account...</span>
+          </div>
+        </div>
+      )}
+
+
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
 
@@ -205,12 +226,6 @@ const [showCpassword,setShowCpassword]=useState(false)
             </p>
           )}
 
-          {/* Success */}
-          {success && (
-            <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-              Account created successfully! OTP sent to email.
-            </p>
-          )}
 
           {/* Submit */}
           <button
@@ -226,6 +241,7 @@ const [showCpassword,setShowCpassword]=useState(false)
           </button>
 
         </form>
+        
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Already have an account?{" "}
@@ -236,7 +252,7 @@ const [showCpassword,setShowCpassword]=useState(false)
 
       </div>
     </div>
-  );
+ </> );
 };
 
 export default Tryregister;

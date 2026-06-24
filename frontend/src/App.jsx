@@ -8,6 +8,7 @@ import Forgetpw from "./pages/Forgetpw";
 import Notice from "./pages/Notice";
 import Notes from "./pages/Notes";
 import Tryregister from "./pages/Register";
+import VerifyOtp from "./pages/VerifyOtp";
 const RootRoute = () => {
   const { token } = useAuth();
   const storedToken = localStorage.getItem("token");
@@ -25,19 +26,22 @@ const App = () => {
         {/* public routes - anyone can visit these */}
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Tryregister />} />
+        <Route path="/verify-otp/:id" element={<VerifyOtp/>} /> 
         <Route path="/forgetpw" element={<Forgetpw />} />
  
-        {/* protected routes - must be logged in, else redirected to "/" 
+      
         
           <Route element={<ProtectedRoute />}>
-           </Route>
-        
-        */}
-      
-          <Route path="/home" element={<Home />} />
+
+           <Route path="/home" element={<Home />} />
            <Route path="/profile" element={<Profile />} />
           <Route path="/notice" element={<Notice />} />
           <Route path="/notes" element={<Notes />} />
+           </Route>
+        
+     
+      
+         
        
       </Routes>
     </AuthProvider>
