@@ -18,47 +18,50 @@ from app.utils.security import hash_password
 from app.utils.seed import create_community
 
 logger = get_logger(__name__)
+try:
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables checked/created successfully")
 
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     db = sessionLocal()
-#
-#     try:
-#         Base.metadata.create_all(bind=engine)
-#         logger.info("Database tables checked/created successfully")
-#
-#         create_community()
-#         logger.info("Root communities created")
-#
-#         if settings.MODERATOR_EMAIL and settings.MODERATOR_PASSWORD:
-#
-#             existing = (
-#                 db.query(User)
-#                 .filter(User.email == settings.MODERATOR_EMAIL)
-#                 .first()
-#             )
-#
-#             if not existing:
-#                 moderator = User(
-#                     name="Moderator",
-#                     email=settings.MODERATOR_EMAIL,
-#                     password=hash_password(settings.MODERATOR_PASSWORD),
-#                     role="moderator",
-#                     is_verified=True,
-#                 )
-#
-#                 db.add(moderator)
-#                 db.commit()
-#                 logger.info("Moderator created")
-#
-#     except SQLAlchemyError:
-#         db.rollback()
-#         logger.exception("Startup failed")
-#
-#     finally:
-#         db.close()
-#
-#     yield
+except SQLAlchemyError as exc:
+    logger.error("Failed to create tables: %s", exc)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db = sessionLocal()
+
+    try:
+        create_community()
+        logger.info("Root communities created")
+
+        if settings.MODERATOR_EMAIL and settings.MODERATOR_PASSWORD:
+
+            existing = (
+                db.query(User)
+                .filter(User.email == settings.MODERATOR_EMAIL)
+                .first()
+            )
+
+            if not existing:
+                moderator = User(
+                    name="Moderator",
+                    email=settings.MODERATOR_EMAIL,
+                    password=hash_password(settings.MODERATOR_PASSWORD),
+                    role="moderator",
+                    is_verified=True,
+                )
+
+                db.add(moderator)
+                db.commit()
+                logger.info("Moderator created")
+
+    except SQLAlchemyError:
+        db.rollback()
+        logger.exception("Startup failed")
+
+    finally:
+        db.close()
+
+    yield
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
