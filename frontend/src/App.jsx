@@ -9,6 +9,11 @@ import Notice from "./pages/Notice";
 import Notes from "./pages/Notes";
 import Tryregister from "./pages/Register";
 import VerifyOtp from "./pages/VerifyOtp";
+
+import { Navigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+
+
 const RootRoute = () => {
   const { token } = useAuth();
   const storedToken = localStorage.getItem("token");
@@ -19,12 +24,13 @@ const RootRoute = () => {
 
   return <Login />;
 };
+
 const App = () => {
   return (
     <AuthProvider>
       <Routes>
         {/* public routes - anyone can visit these */}
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<RootRoute />} />
         <Route path="/register" element={<Tryregister />} />
         <Route path="/verify-otp/:id" element={<VerifyOtp/>} /> 
         <Route path="/forgetpw" element={<Forgetpw />} />
