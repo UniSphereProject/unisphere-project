@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
         db.close()
 
     yield
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

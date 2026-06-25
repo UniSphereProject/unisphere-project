@@ -7,12 +7,30 @@ from __future__ import annotations
 
 import uuid
 
+from fastapi import Depends
 from sqlalchemy import select
 
 from app.models.database import sessionLocal
 from app.models.communities import Community
+from sqlalchemy.orm import Session
 
-MODERATOR_ID = 1 #now hard-coded later on will be changed
+from app.models.database import get_db
+
+from app.models.user import User
+
+from app.utils import logger
+
+from app.models.database import sessionLocal
+
+def get_moderator_id():
+    db = sessionLocal()
+    try:
+        user = db.query(User).filter(User.role == "moderator").first()
+        return user.id if user else None
+    finally:
+        db.close()
+
+MODERATOR_ID = get_moderator_id()
 
 # (slug, name, kind) for each root community required by the spec.
 ROOT_COMMUNITIES: list[tuple[str, str, str]] = [
