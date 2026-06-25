@@ -20,7 +20,11 @@ const[loading,setLoading]=useState(false)
           code,
         }
       );
-navigate('/reset-password')
+navigate('/reset-password',{
+  state:{
+    resetToken:res.data.reset_token
+  },
+})
       console.log(res.data);
     } catch (err) {
       console.log(err);

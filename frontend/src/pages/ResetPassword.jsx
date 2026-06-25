@@ -1,11 +1,16 @@
 import  { useState } from "react";
+import { useLocation } from "react-router-dom";
+
+
 import { Lock, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
+
+  const location = useLocation();
+  const token = location.state?.resetToken;
 
   const navigate = useNavigate();
 
@@ -43,12 +48,15 @@ const ResetPassword = () => {
     try {
       setLoading(true);
 
-      await axios.patch(`${BASE_URL}/auth/reset-password`, {
+     
+
+      await axios.patch(`${BASE_URL}/api/auth/reset-password`, {
+        token,
         new_password: formData.password,
       });
 
       alert("Password reset successful!");
-      navigate("/login");
+      navigate("/");
     } catch (err) {
       alert(
         err.response?.data?.message || "Failed to reset password."
