@@ -1,6 +1,8 @@
 import axios from "axios";
 import { useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useParams,NavLink } from "react-router-dom";
+import { ToastContainer,toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const VerifyOtp = () => {
   const location = useLocation();
@@ -8,7 +10,7 @@ const VerifyOtp = () => {
 
   const email = location.state?.email;
   const BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
-
+const [success,setSuccess]=useState(false)
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -22,6 +24,7 @@ const VerifyOtp = () => {
     try {
       setLoading(true);
       setMessage("");
+      setSuccess(false)
 
       const res = await axios.post(
         `${BASE_URL}/api/auth/verify/${id}`,
@@ -30,11 +33,13 @@ const VerifyOtp = () => {
         }
       );
 
-      setMessage(res.data);
+      setMessage(res.data.message);
+      setSuccess(true)
+      toast.success('Registered')
       console.log(res.data);
     } catch (err) {
       console.error(err);
-
+      toast.error('OTP verification failed.')
       setMessage(
         err.response?.data?.detail?.[0]?.msg ||
           "OTP verification failed."
@@ -45,6 +50,13 @@ const VerifyOtp = () => {
   };
 
   return (
+    <>
+ <ToastContainer  toastStyle={{
+    width: "400px",
+    fontSize: "18px",
+    padding: "16px",
+  }}/>
+
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-sm">
 
@@ -82,14 +94,20 @@ const VerifyOtp = () => {
         </button>
 
         {message && (
+          <>
           <p className="mt-4 text-center text-sm text-gray-600">
             {message}
           </p>
+        
+         { success ? (<NavLink  to='/' className={'text-orange-500 underline mt-4 text-center font-bold text-lg'} >Log in</NavLink>): null}
+          </>
         )}
+
+     
 
       </div>
     </div>
-  );
+ </> );
 };
 
 export default VerifyOtp;
