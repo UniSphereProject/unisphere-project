@@ -3,6 +3,8 @@ import { useState } from "react";
 import{Eye,EyeOff } from 'lucide-react'
 import { Link, useNavigate ,Navigate} from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { ToastContainer,toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -56,7 +58,8 @@ const storedToken = localStorage.getItem("token");
     e.preventDefault();
    
     if (!email) {
-      alert("Please enter email first!");
+      toast.error("Please enter email first!");
+     
       return;
     }
      setIsLoading(true);
@@ -88,6 +91,12 @@ const storedToken = localStorage.getItem("token");
         </div>
       )}
 
+ <ToastContainer  toastStyle={{
+    width: "400px",
+    fontSize: "18px",
+    padding: "16px",
+  }}/>
+  
       <div className="flex justify-center mt-10 ">
         <div className="flex min-h-full max-w-md w-full  flex-col justify-center px-6 py-12 lg:px-12 rounded-3xl shadow-xl p-8 border border-gray-100">
           <div className="sm:mx-auto sm:w-full sm:max-w-sm ">

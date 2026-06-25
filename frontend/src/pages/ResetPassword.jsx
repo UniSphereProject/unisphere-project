@@ -1,6 +1,7 @@
 import  { useState } from "react";
 import { useLocation } from "react-router-dom";
-
+import { ToastContainer,toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import { Lock, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
@@ -65,7 +66,7 @@ console.log("token", token);
   }
 );
 
-      alert("Password reset successful!");
+      toast.success("Password has been reset successfully!");
       navigate("/");
     } catch (err) {
       alert(
@@ -77,6 +78,15 @@ console.log("token", token);
   };
 
   return (
+
+    <>
+
+    <ToastContainer  toastStyle={{
+    width: "400px",
+    fontSize: "18px",
+    padding: "16px",
+  }}/>
+  
     <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
         
@@ -180,7 +190,7 @@ console.log("token", token);
       
       </div>
     </div>
-  );
+  </>);
 };
 
 export default ResetPassword;
