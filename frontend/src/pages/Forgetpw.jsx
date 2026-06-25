@@ -1,9 +1,10 @@
 import axios from "axios";
 import  { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation,useNavigate } from "react-router-dom";
 
 const Forgetpw = () => {
   const location = useLocation();
+  const navigate=useNavigate()
   const email = location.state?.email;
     const BASE_URL=import.meta.env.VITE_BACKEND_API_BASE_URL;
 const[loading,setLoading]=useState(false)
@@ -19,7 +20,7 @@ const[loading,setLoading]=useState(false)
           code,
         }
       );
-
+navigate('/reset-password')
       console.log(res.data);
     } catch (err) {
       console.log(err);

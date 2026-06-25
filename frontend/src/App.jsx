@@ -9,7 +9,7 @@ import Notice from "./pages/Notice";
 import Notes from "./pages/Notes";
 import Tryregister from "./pages/Register";
 import VerifyOtp from "./pages/VerifyOtp";
-
+import ResetPassword from "./pages/ResetPassword";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
@@ -34,6 +34,7 @@ const App = () => {
         <Route path="/register" element={<Tryregister />} />
         <Route path="/verify-otp/:id" element={<VerifyOtp/>} /> 
         <Route path="/forgetpw" element={<Forgetpw />} />
+        <Route path="/reset-password" element={<ResetPassword/>} />
  
       
         
@@ -43,6 +44,7 @@ const App = () => {
            <Route path="/profile" element={<Profile />} />
           <Route path="/notice" element={<Notice />} />
           <Route path="/notes" element={<Notes />} />
+          
            </Route>
         
      
