@@ -24,7 +24,7 @@ const VerifyOtp = () => {
       setMessage("");
 
       const res = await axios.post(
-        `${BASE_URL}/api/auth/verify-otp/${id}`,
+        `${BASE_URL}/api/auth/verify/${id}`,
         {
           otp,
         }

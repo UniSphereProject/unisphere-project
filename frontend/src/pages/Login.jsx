@@ -1,5 +1,4 @@
 import axios from "axios";
-import React from "react";
 import { useState } from "react";
 import{Eye,EyeOff } from 'lucide-react'
 import { Link, useNavigate ,Navigate} from "react-router-dom";

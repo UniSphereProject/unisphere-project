@@ -12,6 +12,9 @@ const ResetPassword = () => {
   const location = useLocation();
   const token = location.state?.resetToken;
 
+  console.log("location.state", location.state);
+console.log("token", token);
+
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -50,10 +53,17 @@ const ResetPassword = () => {
 
      
 
-      await axios.patch(`${BASE_URL}/api/auth/reset-password`, {
-        token,
-        new_password: formData.password,
-      });
+      await axios.patch(
+  `${BASE_URL}/api/auth/reset-password`,
+  {
+    new_password: formData.password,
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
 
       alert("Password reset successful!");
       navigate("/");
