@@ -23,40 +23,33 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db = sessionLocal()
+
     try:
         Base.metadata.create_all(bind=engine)
-        logger.info("Database tables checked/created successfully")
+        logger.info("DB ready")
 
-    except SQLAlchemyError as exc:
-        logger.error("Failed to create tables: %s", exc)
+        moderator = db.query(User).filter(User.role == "moderator").first()
 
-    try:
-        if settings.MODERATOR_EMAIL and settings.MODERATOR_PASSWORD:
-
-            existing = (
-                db.query(User)
-                .filter(User.email == settings.MODERATOR_EMAIL)
-                .first()
+        if not moderator:
+            moderator = User(
+                name="Moderator",
+                email=settings.MODERATOR_EMAIL,
+                password=hash_password(settings.MODERATOR_PASSWORD),
+                role="moderator",
+                is_verified=True,
             )
+            db.add(moderator)
+            db.commit()
+            db.refresh(moderator)
 
-            if not existing:
-                moderator = User(
-                    name="Moderator",
-                    email=settings.MODERATOR_EMAIL,
-                    password=hash_password(settings.MODERATOR_PASSWORD),
-                    role="moderator",
-                    is_verified=True,
-                )
+        logger.info("Moderator ready")
 
-                db.add(moderator)
-                db.commit()
-                logger.info("Moderator created")
-        create_community()
-        logger.info("Root communities created")
+        create_community(db)
 
-    except SQLAlchemyError:
+    except Exception:
         db.rollback()
         logger.exception("Startup failed")
+        raise
 
     finally:
         db.close()
