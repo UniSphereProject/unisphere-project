@@ -18,16 +18,17 @@ from app.utils.security import hash_password
 from app.utils.seed import create_community
 
 logger = get_logger(__name__)
-try:
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database tables checked/created successfully")
 
-except SQLAlchemyError as exc:
-    logger.error("Failed to create tables: %s", exc)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db = sessionLocal()
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables checked/created successfully")
+
+    except SQLAlchemyError as exc:
+        logger.error("Failed to create tables: %s", exc)
 
     try:
         create_community()
