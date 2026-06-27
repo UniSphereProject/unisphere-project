@@ -59,5 +59,5 @@ def create_community(db: Session):
 
     except Exception:
         db.rollback()
-        logger.exception("Seeding failed")
+        logger.info("Seeding failed")
         raise

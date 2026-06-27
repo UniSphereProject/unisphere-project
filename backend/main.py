@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
 
     except Exception:
         db.rollback()
-        logger.exception("Startup failed")
+        logger.info("Startup failed")
         raise
 
     finally:
