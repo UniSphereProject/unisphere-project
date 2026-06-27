@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.models.communities import Community
 from app.models.user import User
-from app.utils import logger
+from app.utils.logger import get_logger
+logger = get_logger(__name__)
 
 ROOT_COMMUNITIES = [
     ("academics", "Academics", "discussion"),
@@ -22,7 +23,7 @@ def create_community(db: Session):
     moderator = db.query(User).filter(User.role == "moderator").first()
 
     if not moderator:
-        logger.warning("Moderator not found. Skipping seeding.")
+        logger.info("Moderator not found. Skipping seeding.")
         return
 
     created = 0
