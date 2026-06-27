@@ -31,9 +31,6 @@ async def lifespan(app: FastAPI):
         logger.error("Failed to create tables: %s", exc)
 
     try:
-        create_community()
-        logger.info("Root communities created")
-
         if settings.MODERATOR_EMAIL and settings.MODERATOR_PASSWORD:
 
             existing = (
@@ -54,6 +51,8 @@ async def lifespan(app: FastAPI):
                 db.add(moderator)
                 db.commit()
                 logger.info("Moderator created")
+        create_community()
+        logger.info("Root communities created")
 
     except SQLAlchemyError:
         db.rollback()
