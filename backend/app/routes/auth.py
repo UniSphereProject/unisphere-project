@@ -32,12 +32,24 @@ router=APIRouter(
 
 @router.post("/register",status_code=status.HTTP_201_CREATED)
 def create_user(payload:auth.Users,db: Session = Depends(get_db)):
-    otp_code=generate_otp()
+
     hash_pass=hash_password(payload.password)
 
     user=db.query(User).filter(User.email==payload.email).first()
     if user:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="User Already exists")
+        if user.is_verified:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="User Already exists")
+        otp_code = generate_otp()
+        if user.otp:
+            user.otp.code = otp_code
+            user.otp.expiry_time = datetime.utcnow() + timedelta(minutes=5)
+        else:
+            user.otp = OTP(code=otp_code, expiry_time=datetime.utcnow() + timedelta(minutes=5))
+        db.commit()
+        send_email_via_brevo(to_email=user.email, subject="OTP Verification",
+                             html_content=f"<html><body>Your new OTP: <b>{otp_code}</b></body></html>")
+        return {"id": user.id, "email": user.email, "message": "OTP resent"}
+    otp_code = generate_otp()
     user=User(
     name=payload.name,
     email=payload.email,
@@ -133,7 +145,7 @@ def login(
             detail="Invalid credentials"
         )
     if not user.is_verified:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Please verify email first")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Please verify email first.Verify by clicking register again")
     access_token = oauth2.create_access_token(data={"user_id": str(user.id)})
     refresh_token = oauth2.create_refresh_token(data={"user_id": str(user.id)})
     db_token = RefreshToken(
