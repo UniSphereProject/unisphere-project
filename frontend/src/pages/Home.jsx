@@ -1,14 +1,13 @@
 import React from "react";
 import discussionData from "../discussionData";
-import noticeData from '../noticeData'
 import Discussion from "../components/Discussion";
 import Navbar from "../components/Navbar";
-import  Sidebar from "../components/Sidebar";
-
+import Sidebar from "../components/Sidebar";
+import TrendingSection from "./TrendingSection";
 
 const Home = () => {
   const display = discussionData.map((post) => (
-   <Discussion
+    <Discussion
       key={post.id}
       id={post.id}
       user={post.user}
@@ -18,22 +17,24 @@ const Home = () => {
     />
   ));
 
- 
-
   return (
-    <>
-      <div className="bg-slate-100 min-h-screen m-0 py-2">
-         <Navbar/>
-        <div className="flex "> 
-         
-        <Sidebar/>
-         <div className="mt-16 flex-1"> {display}</div>
-        </div>
-       
-       
-       
-        </div>
-    </>
+    <div className="bg-slate-100 min-h-screen">
+      <Navbar />
+
+      <div className="flex pt-16">
+        <Sidebar />
+
+        <main className="flex-1 px-4">
+          {display}
+        </main>
+
+        <aside className="w-80 mr-4 hidden lg:block">
+          <div className="sticky top-20">
+            <TrendingSection />
+          </div>
+        </aside>
+      </div>
+    </div>
   );
 };
 

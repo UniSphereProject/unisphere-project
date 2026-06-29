@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { ThumbsUp, ThumbsDown, MessageSquare, Trash2, ChevronRight } from "lucide-react";
-
 // Helper to generate consistent avatar colors based on name
 const getAvatarColor = (name) => {
   const colors = [
@@ -87,7 +86,7 @@ const CommentNode = ({
           {/* Avatar */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold select-none cursor-pointer ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold select-none cursor-pointer ${ 
               comment.avatarColor || getAvatarColor(comment.author)
             } hover:scale-105 transition-transform`}
             title={isCollapsed ? "Expand thread" : "Collapse thread"}

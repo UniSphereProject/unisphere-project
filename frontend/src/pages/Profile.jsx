@@ -256,7 +256,7 @@ const Profile = () => {
       <div className="flex">
         <Sidebar />
         <div className="mt-16 flex-1 ml-16 md:ml-64 p-4 md:p-8">
-          <div className="max-w-2xl mx-auto bg-white border border-gray-200 rounded-xl shadow-lg p-6 border-l-4 border-orange-400">
+          <div className="max-w-2xl mx-auto bg-white border border-gray-200 rounded-xl shadow-lg p-6 border-l-4 border-orange-600">
 
             {/* Header */}
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
