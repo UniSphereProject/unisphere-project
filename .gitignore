@@ -5,3 +5,4 @@ ENV/
 .env
 .env.local
 .idea
+*.node_modules
