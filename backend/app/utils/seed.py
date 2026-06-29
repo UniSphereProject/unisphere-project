@@ -16,6 +16,7 @@ ROOT_COMMUNITIES = [
     ("complaints", "Complaints", "complaint"),
     ("lost-and-found", "Lost and Found", "lost_found"),
     ("announcements", "Announcements", "announcement"),
+    ("complain","Complain","discussion")
 ]
 
 

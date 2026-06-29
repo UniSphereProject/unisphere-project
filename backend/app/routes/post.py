@@ -1,8 +1,8 @@
 from __future__ import annotations
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db
@@ -189,7 +189,6 @@ def get_post(
     current_user: User | None = Depends(get_current_user),
 ):
     post = _get_post_or_404(db, post_id)
-    post.view_count += 1
     db.commit()
     return _enrich_post(db, post, current_user.id if current_user else None)
 
@@ -341,3 +340,61 @@ def unverify_post(
     db.commit()
     db.refresh(post)
     return _enrich_post(db, post, current_user.id)
+@router.get("/search", response_model=list[PostOut], tags=["Search"])
+def search_posts(
+    q: str = Query(..., min_length=2, description="Search query string"),
+    limit: int = Query(default=20, ge=1, le=50),
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
+):
+    """Search posts by keyword in title and body (case-insensitive)."""
+    limit = max(1, min(limit, 50))
+    pattern = f"%{q}%"
+    stmt = (
+        select(Post)
+        .where(or_(Post.title.ilike(pattern), Post.body.ilike(pattern)))
+        .order_by(Post.created_at.desc())
+        .limit(limit)
+    )
+    posts = db.scalars(stmt).all()
+    user_id = current_user.id if current_user else None
+    return [_enrich_post(db, p, user_id) for p in posts]
+
+@router.get("/trending", response_model=list[PostOut], tags=["Trending"])
+def get_trending_posts(
+    limit: int = Query(default=10, ge=1, le=30),
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
+):
+    """Return trending posts from the last 7 days, ranked by engagement score.
+
+    Score = (likes * 2 + comments * 1).
+    """
+    limit = max(1, min(limit, 30))
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+
+    like_sub = (
+        db.query(func.count(PostReaction.id))
+        .filter(PostReaction.post_id == Post.id, PostReaction.reaction == "like")
+        .correlate(Post)
+        .scalar_subquery()
+    )
+    comment_sub = (
+        db.query(func.count(PostComment.id))
+        .filter(PostComment.post_id == Post.id)
+        .correlate(Post)
+        .scalar_subquery()
+    )
+
+    stmt = (
+        select(Post)
+        .where(Post.created_at >= seven_days_ago)
+        .order_by(
+            (func.coalesce(like_sub, 0) * 2 + func.coalesce(comment_sub, 0)).desc(),
+            Post.created_at.desc(),
+        )
+        .limit(limit)
+    )
+    posts = db.scalars(stmt).all()
+    user_id = current_user.id if current_user else None
+    return [_enrich_post(db, p, user_id) for p in posts]

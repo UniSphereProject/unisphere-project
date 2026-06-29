@@ -95,6 +95,10 @@ def list_communities(
     only_roots: bool = Query(
         default=False, description="Return only root communities (no parent)."
     ),
+    kind: str | None = Query(
+        default=None,
+        description="Filter by community kind: discussion, notes, complaint, lost_found, announcement",
+    ),
     db: Session = Depends(get_db),
 ) -> list[CommunityOut]:
     """
@@ -111,6 +115,8 @@ def list_communities(
         stmt = stmt.where(Community.parent_id.is_(None))
     elif parent_id is not None:
         stmt = stmt.where(Community.parent_id == parent_id)
+    if kind:
+        stmt = stmt.where(Community.kind == kind)
     stmt = stmt.order_by(Community.path)
     rows = db.scalars(stmt).all()
     return [CommunityOut.model_validate(r) for r in rows]
