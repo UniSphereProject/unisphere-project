@@ -7,9 +7,11 @@ import Home from "./pages/Home";
 import Forgetpw from "./pages/Forgetpw";
 import Notice from "./pages/Notice";
 import Notes from "./pages/Notes";
+import Projects from "./pages/Projects";
 import Tryregister from "./pages/Register";
 import VerifyOtp from "./pages/VerifyOtp";
 import ResetPassword from "./pages/ResetPassword";
+import PostDetail from "./pages/PostDetail";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
@@ -40,12 +42,14 @@ const App = () => {
         
           <Route element={<ProtectedRoute />}>
 
-           <Route path="/home" element={<Home />} />
-           <Route path="/profile" element={<Profile />} />
-          <Route path="/notice" element={<Notice />} />
-          <Route path="/notes" element={<Notes />} />
-          
-           </Route>
+	           <Route path="/home" element={<Home />} />
+	           <Route path="/profile" element={<Profile />} />
+	          <Route path="/notice" element={<Notice />} />
+	          <Route path="/notes" element={<Notes />} />
+		          <Route path="/projects" element={<Projects />} />
+		          <Route path="/post/:id" element={<PostDetail />} />
+
+		           </Route>
         
      
       

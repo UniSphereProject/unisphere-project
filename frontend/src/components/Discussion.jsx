@@ -1,111 +1,188 @@
-
-import React, { useState } from "react";
-import { ThumbsUp, ThumbsDown, MessageCircle } from "lucide-react";
+import React, { useState, useCallback } from "react";
+import { ThumbsUp, ThumbsDown, MessageCircle, Clock, ShieldCheck } from "lucide-react";
 import CommentSection from "./CommentSection";
-import mockCommentsData from "../mockCommentsData";
+import API from "../utils/api";
 
-const countTotalComments = (list) => {
-  let count = list.length;
-  for (let c of list) {
-    if (c.replies && c.replies.length > 0) {
-      count += countTotalComments(c.replies);
-    }
-  }
-  return count;
+/**
+ * Discussion — renders a single post card.
+ *
+ * Props:
+ *   post (object) — the enriched post object from the backend:
+ *     { id, title, body, post_type, image_url, created_at,
+ *       author: { id, name, profile_image_url, role } | null,
+ *       reaction_summary: { likes, dislikes, user_reaction } | null,
+ *       comment_count, is_teacher_verified, community, ... }
+ */
+
+const timeAgo = (dateStr) => {
+  if (!dateStr) return "";
+  const now = new Date();
+  const then = new Date(dateStr);
+  const diffMs = now - then;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d ago`;
+  const diffMonths = Math.floor(diffDays / 30);
+  return `${diffMonths}mo ago`;
 };
 
-const Discussion = (props) => {
-  const [Upcount, setUpcount] = useState(0);
-  const [Downcount, setDowncount] = useState(0);
-  const [Vote, setVote] = useState(null);
+const typeBadgeColor = (type) => {
+  const map = {
+    discussion: "bg-blue-100 text-blue-700",
+    notes: "bg-green-100 text-green-700",
+    announcement: "bg-purple-100 text-purple-700",
+    lost_found: "bg-amber-100 text-amber-700",
+    complaint: "bg-red-100 text-red-700",
+    project: "bg-teal-100 text-teal-700",
+  };
+  return map[type] || "bg-gray-100 text-gray-700";
+};
+
+const Discussion = ({ post }) => {
+  // ── Local reaction state (optimistic) ────────────────────────────────
+  const rs = post.reaction_summary || { likes: 0, dislikes: 0, user_reaction: null };
+  const [likes, setLikes] = useState(rs.likes);
+  const [dislikes, setDislikes] = useState(rs.dislikes);
+  const [userVote, setUserVote] = useState(rs.user_reaction);
+  const [reacting, setReacting] = useState(false);
+
+  // ── Comments ───────────────────────────────────────────────────────────
   const [showComments, setShowComments] = useState(false);
-  const [commentCount, setCommentCount] = useState(() => {
-    const cached = localStorage.getItem(`comments_post_${props.id}`);
-    if (cached) {
+  const [commentCount, setCommentCount] = useState(post.comment_count || 0);
+
+  // ── React handler ────────────────────────────────────────────────────
+  const handleReact = useCallback(
+    async (reaction) => {
+      if (reacting) return;
+      setReacting(true);
+
+      // Optimistic update
+      const prevLikes = likes;
+      const prevDislikes = dislikes;
+      const prevVote = userVote;
+
+      if (reaction === "like") {
+        if (userVote === "like") {
+          setLikes((l) => l - 1);
+          setUserVote(null);
+        } else {
+          if (userVote === "dislike") setDislikes((d) => d - 1);
+          setLikes((l) => l + 1);
+          setUserVote("like");
+        }
+      } else {
+        if (userVote === "dislike") {
+          setDislikes((d) => d - 1);
+          setUserVote(null);
+        } else {
+          if (userVote === "like") setLikes((l) => l - 1);
+          setDislikes((d) => d + 1);
+          setUserVote("dislike");
+        }
+      }
+
       try {
-        return countTotalComments(JSON.parse(cached));
-      } catch (e) {}
-    }
-    return countTotalComments(mockCommentsData[props.id] || []);
-  });
+        await API.post(`/posts/${post.id}/react`, { reaction });
+      } catch {
+        // Rollback on failure
+        setLikes(prevLikes);
+        setDislikes(prevDislikes);
+        setUserVote(prevVote);
+      } finally {
+        setReacting(false);
+      }
+    },
+    [post.id, userVote, likes, dislikes, reacting]
+  );
 
-  const handleThumbsUp = () => {
-    if (Vote === null) {
-      setUpcount((prev) => prev + 1);
-      setVote("up");
-    }
-    else if(Vote === 'up'){
-       setUpcount((prev) => prev - 1);
-      setVote(null);
-    }
-    else{
-      setDowncount(prev => prev-1)
-      setUpcount((prev) => prev + 1);
-      setVote('up');
-    }
-  };
-
- const handleThumbsDown = () => {
-    if (Vote === null) {
-      setDowncount((prev) => prev + 1);
-      setVote("down");
-    }
-    else if(Vote === 'down'){
-       setDowncount((prev) => prev - 1)
-      setVote(null);
-    }
-    else{
-      setDowncount(prev => prev+1)
-      setUpcount(prev=>prev-1)
-      setVote('down');
-    }
-  };
+  const authorName = post.is_anonymous
+    ? "Anonymous"
+    : post.author?.name || "Unknown User";
 
   return (
-    <div className="  p-4 border border-gray-200 rounded-xl shadow-lg bg-white m-4 hover:shadow-md transition mx-auto w-full max-w-xl border-l-4 border-orange-400  ml-16 md:ml-125">
-      {/* User */}
-      <p className="text-sm  text-orange-600 font-medium mb-3">{props.user}</p>
+    <div className="p-4 border border-gray-200 rounded-xl shadow-lg bg-white m-4 hover:shadow-md transition mx-auto w-full max-w-xl border-l-4 border-orange-400">
+      {/* Author row */}
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-sm text-orange-600 font-medium">{authorName}</span>
+        {post.author?.profile_image_url && (
+          <img
+            src={post.author.profile_image_url}
+            alt={authorName}
+            className="w-6 h-6 rounded-full object-cover"
+          />
+        )}
+        <span className="text-xs text-gray-400 flex items-center gap-1">
+          <Clock size={12} />
+          {timeAgo(post.created_at)}
+        </span>
+        {post.is_teacher_verified && (
+          <ShieldCheck size={16} className="text-green-600" title="Teacher verified" />
+        )}
+      </div>
+
+      {/* Post type badge */}
+      {post.post_type && (
+        <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full mb-2 ${typeBadgeColor(post.post_type)}`}>
+          {post.post_type?.replace("_", " ")}
+        </span>
+      )}
 
       {/* Title */}
-      <p className="text-xl font-bold text-gray-900 mb-3">{props.title}</p>
+      <p className="text-xl font-bold text-gray-900 mb-3">{post.title}</p>
 
       {/* Content */}
-      <p className="text-sm  text-gray-700 mb-3">{props.content}</p>
+      {post.body && (
+        <p className="text-sm text-gray-700 mb-3 whitespace-pre-wrap">{post.body}</p>
+      )}
 
       {/* Image (only if exists) */}
-      {props.imageurl && (
+      {post.image_url && (
         <img
           className="w-full h-auto object-cover rounded-lg mb-3"
           alt="discussion"
-          src={props.imageurl}
+          src={post.image_url}
         />
       )}
 
+      {/* Community name */}
+      {post.community && (
+        <span className="text-xs text-gray-400 mb-2 block">in {post.community.name}</span>
+      )}
+
+      {/* Actions */}
       <div className="flex items-center gap-4 text-gray-600 border-b border-gray-50 pb-2">
         <button
           className={`flex items-center gap-1 hover:text-green-600 transition hover:cursor-pointer p-1 rounded-md hover:bg-gray-50 ${
-            Vote === "up" ? "text-green-600 font-semibold" : ""
+            userVote === "like" ? "text-green-600 font-semibold" : ""
           }`}
-          onClick={handleThumbsUp}
+          onClick={() => handleReact("like")}
+          disabled={reacting}
         >
           <ThumbsUp size={18} />
-          <span>{Upcount}</span>
+          <span>{likes}</span>
         </button>
 
         <button
           className={`flex items-center gap-1 hover:text-red-500 transition hover:cursor-pointer p-1 rounded-md hover:bg-gray-50 ${
-            Vote === "down" ? "text-red-500 font-semibold" : ""
+            userVote === "dislike" ? "text-red-500 font-semibold" : ""
           }`}
-          onClick={handleThumbsDown}
+          onClick={() => handleReact("dislike")}
+          disabled={reacting}
         >
           <ThumbsDown size={18} />
-          <span>{Downcount}</span>
+          <span>{dislikes}</span>
         </button>
 
         <button
           onClick={() => setShowComments(!showComments)}
           className={`flex items-center gap-1.5 transition hover:cursor-pointer p-1 rounded-md ${
-            showComments ? "text-orange-500 bg-orange-50" : "hover:text-orange-500 hover:bg-gray-50"
+            showComments
+              ? "text-orange-500 bg-orange-50"
+              : "hover:text-orange-500 hover:bg-gray-50"
           }`}
         >
           <MessageCircle size={19} />
@@ -116,7 +193,7 @@ const Discussion = (props) => {
       {/* Comment Section Panel */}
       {showComments && (
         <CommentSection
-          postId={props.id}
+          postId={post.id}
           onCommentCountChange={setCommentCount}
         />
       )}

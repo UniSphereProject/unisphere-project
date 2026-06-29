@@ -23,6 +23,16 @@ const getAvatarColor = (name) => {
   return colors[index];
 };
 
+/**
+ * CommentNode — renders a single comment with nested replies.
+ *
+ * comment shape (from API, mapped in CommentSection):
+ *   { id, author, content, timestamp, votes, userReaction, likes, dislikes, replies[] }
+ *
+ * onVote signature changed: onVote(commentId, reaction) where reaction = "like" | "dislike"
+ * onDelete signature: onDelete(commentId)
+ * onAddReply signature: onAddReply(parentId, content)
+ */
 const CommentNode = ({
   comment,
   depth = 0,
@@ -34,34 +44,47 @@ const CommentNode = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyContent, setReplyContent] = useState("");
-  const [userVote, setUserVote] = useState(null); // 'up', 'down', or null
+
+  // Initialize userVote from the API-provided userReaction
+  const apiReaction = comment.userReaction;
+  const [userVote, setUserVote] = useState(
+    apiReaction === "like" ? "up" : apiReaction === "dislike" ? "down" : null
+  );
+
+  // Local optimistic vote display
+  const [localLikes, setLocalLikes] = useState(comment.likes ?? 0);
+  const [localDislikes, setLocalDislikes] = useState(comment.dislikes ?? 0);
 
   const handleVote = (type) => {
-    let voteDiff = 0;
+    const reaction = type === "up" ? "like" : "dislike";
+    // Optimistic local update
     if (type === "up") {
       if (userVote === "up") {
         setUserVote(null);
-        voteDiff = -1;
+        setLocalLikes((l) => l - 1);
       } else if (userVote === "down") {
         setUserVote("up");
-        voteDiff = 2;
+        setLocalDislikes((d) => d - 1);
+        setLocalLikes((l) => l + 1);
       } else {
         setUserVote("up");
-        voteDiff = 1;
+        setLocalLikes((l) => l + 1);
       }
     } else {
       if (userVote === "down") {
         setUserVote(null);
-        voteDiff = 1;
+        setLocalDislikes((d) => d - 1);
       } else if (userVote === "up") {
         setUserVote("down");
-        voteDiff = -2;
+        setLocalLikes((l) => l - 1);
+        setLocalDislikes((d) => d + 1);
       } else {
         setUserVote("down");
-        voteDiff = -1;
+        setLocalDislikes((d) => d + 1);
       }
     }
-    onVote(comment.id, voteDiff);
+    // Fire API call
+    onVote(comment.id, reaction);
   };
 
   const handleSubmitReply = (e) => {
@@ -94,7 +117,7 @@ const CommentNode = ({
           >
             {isCollapsed ? "+" : initials}
           </button>
-          
+
           {/* Thread connector line */}
           {!isCollapsed && comment.replies && comment.replies.length > 0 && (
             <div
@@ -146,7 +169,7 @@ const CommentNode = ({
                   }`}
                 >
                   <ThumbsUp size={13} />
-                  <span>{comment.votes}</span>
+                  <span>{localLikes}</span>
                 </button>
 
                 {/* Downvote */}
@@ -157,6 +180,7 @@ const CommentNode = ({
                   }`}
                 >
                   <ThumbsDown size={13} />
+                  <span>{localDislikes}</span>
                 </button>
 
                 {/* Reply Button */}
@@ -171,7 +195,7 @@ const CommentNode = ({
                 </button>
 
                 {/* Delete Button */}
-                {(isMyComment || comment.id.startsWith("temp_")) && (
+                {isMyComment && (
                   <button
                     onClick={() => onDelete(comment.id)}
                     className="flex items-center gap-1 hover:text-red-500 cursor-pointer transition-colors ml-auto p-1 rounded hover:bg-gray-50 text-gray-400"
