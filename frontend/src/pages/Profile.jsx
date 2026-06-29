@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { User, Camera, Save, Edit2, Loader2, Award, BookOpen, Calendar, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -7,56 +7,77 @@ import Sidebar from "../components/Sidebar";
 import { useAuth } from "../context/AuthContext";
 
 const getUserDataFromToken = (token) => {
-  if (!token) return "guest";
+  const fallback = { userId: "guest", program: "", batch: "", stream: "" };
+  if (!token) return fallback;
   try {
     const parts = token.split(".");
     if (parts.length === 3) {
       const payload = JSON.parse(
         atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
       );
-      return  {
-       userId :payload.user_id, 
-        program: payload.program ,
-         batch: payload.batch  ,
-          stream:payload.stream
-      } 
+      return {
+        userId: payload.user_id || "guest",
+        program: payload.program || "",
+        batch: payload.batch || "",
+        stream: payload.stream || "",
+      };
     }
   } catch (e) {
     console.error("Token decoding error:", e);
   }
-  return "guest";
+  return fallback;
+};
+
+const formatErrorMsg = (err) => {
+  const detail = err.response?.data?.detail;
+  if (!detail) return err.message || "An error occurred.";
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((d) => `${d.loc?.join(".") || "Error"}: ${d.msg}`).join("; ");
+  }
+  if (typeof detail === "object" && detail.message) return detail.message;
+  return JSON.stringify(detail);
 };
 
 const Profile = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
-  const userId = getUserDataFromToken(token).userId;
-  const stream=getUserDataFromToken(token).stream;
-  const program=getUserDataFromToken(token).program;
-  const batch=getUserDataFromToken(token).batch;
+  const userData = getUserDataFromToken(token);
+  const stream = userData.stream;
+  const program = userData.program;
+  const batch = userData.batch;
   const BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [hasProfile, setHasProfile] = useState(false);
   const [profile, setProfile] = useState({ stream: stream, program: program, batch: batch });
   const [uploadingImage, setUploadingImage] = useState(false);
- 
-  const [imageUrl, setImageUrl] = useState(
-    () => localStorage.getItem(`profile_image_${userId}`) || ""
-  );
- 
+  const [imageUrl, setImageUrl] = useState("");
   const [pendingFile, setPendingFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState("");
 
-  useEffect(() => {
-    fetchProfile();
-  }, [token]);
+  const setAndRevokeImageUrl = (newUrl) => {
+    setImageUrl((prev) => {
+      if (prev && prev.startsWith("blob:")) {
+        URL.revokeObjectURL(prev);
+      }
+      return newUrl;
+    });
+  };
 
-  const fetchProfile = async () => {
-    setLoading(true);
-    setError(null);
+  const setAndRevokePreviewUrl = (newUrl) => {
+    setPreviewUrl((prev) => {
+      if (prev && prev.startsWith("blob:")) {
+        URL.revokeObjectURL(prev);
+      }
+      return newUrl;
+    });
+  };
+
+  const fetchProfile = useCallback(async () => {
     try {
       const res = await axios.get(`${BASE_URL}/student/profile`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -66,12 +87,88 @@ const Profile = () => {
         program: res.data.program || "",
         batch: res.data.batch || "",
       });
+      setHasProfile(true);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to load profile.");
+      if (err.response?.status === 404) {
+        setHasProfile(false);
+        setProfile({
+          stream: stream || "",
+          program: program || "",
+          batch: batch || "",
+        });
+      } else {
+        setError(formatErrorMsg(err));
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, BASE_URL, stream, program, batch]);
+
+  const fetchProfileImage = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(`${BASE_URL}/student/image`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob",
+      });
+      if (res.data) {
+        if (res.data.type === "application/json") {
+          const text = await res.data.text();
+          try {
+            const json = JSON.parse(text);
+            if (typeof json === "string") {
+              setAndRevokeImageUrl(json);
+            } else {
+              const url = json.image_url || json.profile_image_url || json.url || json.file_url || json.image || json.image_path;
+              if (url) {
+                setAndRevokeImageUrl(url);
+              } else {
+                setAndRevokeImageUrl("");
+              }
+            }
+          } catch (e) {
+            if (text.startsWith("http://") || text.startsWith("https://") || text.startsWith("/")) {
+              setAndRevokeImageUrl(text);
+            } else {
+              setAndRevokeImageUrl("");
+            }
+          }
+        } else {
+          const url = URL.createObjectURL(res.data);
+          setAndRevokeImageUrl(url);
+        }
+      }
+    } catch (err) {
+      console.log("No profile image set or failed to load image:", err);
+      setAndRevokeImageUrl("");
+    }
+  }, [token, BASE_URL]);
+
+  useEffect(() => {
+    if (token) {
+      Promise.resolve().then(() => {
+        setLoading(true);
+        setError(null);
+        fetchProfile();
+        fetchProfileImage();
+      });
+    }
+    return () => {
+      // Cleanup blob URLs on unmount
+      setImageUrl((prev) => {
+        if (prev && prev.startsWith("blob:")) {
+          URL.revokeObjectURL(prev);
+        }
+        return "";
+      });
+      setPreviewUrl((prev) => {
+        if (prev && prev.startsWith("blob:")) {
+          URL.revokeObjectURL(prev);
+        }
+        return null;
+      });
+    };
+  }, [token, fetchProfile, fetchProfileImage]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -84,22 +181,31 @@ const Profile = () => {
     setSuccessMsg("");
     setLoading(true);
     try {
-      await axios.put(`${BASE_URL}/student/profile`, profile, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      setSuccessMsg("Profile updated successfully!");
+      if (hasProfile) {
+        await axios.put(`${BASE_URL}/student/profile`, profile, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+      } else {
+        await axios.post(`${BASE_URL}/student/profile`, profile, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        setHasProfile(true);
+      }
+      setSuccessMsg("Profile saved successfully!");
       setIsEditing(false);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to update profile.");
+      setError(formatErrorMsg(err));
     } finally {
       setLoading(false);
     }
   };
 
-  
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     e.target.value = ""; // reset so same file can be re-selected
@@ -110,10 +216,10 @@ const Profile = () => {
     setError(null);
     setSuccessMsg("");
     setPendingFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    const url = URL.createObjectURL(file);
+    setAndRevokePreviewUrl(url);
   };
 
-  
   const handleImageConfirm = async () => {
     if (!pendingFile) return;
     setUploadingImage(true);
@@ -128,22 +234,19 @@ const Profile = () => {
           "Content-Type": "multipart/form-data",
         },
       });
-      // Use the local preview as the displayed image (server stores it)
-      setImageUrl(previewUrl);
-      localStorage.setItem(`profile_image_${userId}`, previewUrl);
       setSuccessMsg("Profile picture updated!");
-    } catch (err) {
-      setError(err.response?.data?.detail || "Failed to upload image.");
-    } finally {
+      setAndRevokePreviewUrl(null);
       setPendingFile(null);
-      setPreviewUrl(null);
+      await fetchProfileImage();
+    } catch (err) {
+      setError(formatErrorMsg(err));
+    } finally {
       setUploadingImage(false);
     }
   };
 
- 
   const handleImageCancel = () => {
-    setPreviewUrl(null);
+    setAndRevokePreviewUrl(null);
     setPendingFile(null);
   };
 
