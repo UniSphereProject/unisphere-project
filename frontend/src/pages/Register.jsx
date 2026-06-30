@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { User ,Eye,EyeOff} from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Link ,useNavigate} from "react-router-dom";
 
 
@@ -28,9 +28,9 @@ const Field = ({
       autoComplete={autoComplete}
       required={required}
       placeholder={placeholder}
-      className="px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm
-                 outline-none transition
-                 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 focus:bg-white"
+      className="px-3.5 py-2.5 rounded-xl border border-orange-100/80 bg-white/85 text-sm
+                 shadow-sm outline-none transition placeholder:text-gray-400
+                 focus:border-unisphere-orange focus:ring-4 focus:ring-orange-100 focus:bg-white"
     />
   </div>
 );
@@ -145,26 +145,26 @@ setConfirmPassword("");
       )}
 
 
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+    <div className="relative min-h-screen overflow-hidden px-4 py-10">
+      <img
+        src="/UniSphere_Login_Background.svg"
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 -z-10 h-full w-full object-cover opacity-70"
+      />
+      <div className="absolute inset-0 -z-10 bg-white/45"></div>
+      <div className="flex min-h-[calc(100vh-5rem)] items-center justify-center">
+      <div className="w-full max-w-md bg-white/85 backdrop-blur-md rounded-3xl shadow-2xl shadow-orange-950/10 p-8 border border-white/70 ring-1 ring-orange-100/70">
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Register</h1>
+          <h1 className="text-3xl font-bold text-unisphere-orange">Register</h1>
           <p className="text-gray-500 mt-2">Be a part of Unisphere</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
 
-          {/* Avatar placeholder (no upload anymore) */}
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-24 h-24 rounded-full border-4 border-orange-100 flex items-center justify-center bg-gray-50">
-              <User className="w-10 h-10 text-gray-400" />
-            </div>
-            <span className="text-sm text-gray-500">
-              Profile picture will be added later
-            </span>
-          </div>
+        
 
           <Field
             id="name"
@@ -172,7 +172,7 @@ setConfirmPassword("");
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Hari Bahadur Dhungana"
+            placeholder="eg. Balendra Shah"
             required
           />
 
@@ -192,7 +192,7 @@ setConfirmPassword("");
             type={showPassword? 'text': 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Min 8 characters"
+            placeholder="Min. 8 characters"
             required
           />
 
@@ -231,7 +231,7 @@ setConfirmPassword("");
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 rounded-xl text-white font-semibold transition
+            className={`w-full py-3 rounded-xl text-white font-semibold shadow-lg shadow-orange-500/25 transition cursor-pointer
               ${loading
                 ? "bg-orange-300 cursor-not-allowed"
                 : "bg-orange-600 hover:bg-orange-700 active:scale-95"
@@ -250,6 +250,7 @@ setConfirmPassword("");
           </Link>
         </p>
 
+      </div>
       </div>
     </div>
  </> );

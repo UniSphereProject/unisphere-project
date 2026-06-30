@@ -1,4 +1,5 @@
-import axios from "axios";
+
+  import axios from "axios";
 import { useState } from "react";
 import{Eye,EyeOff } from 'lucide-react'
 import { Link, useNavigate ,Navigate} from "react-router-dom";
@@ -97,15 +98,23 @@ const storedToken = localStorage.getItem("token");
     padding: "16px",
   }}/>
   
-      <div className="flex justify-center mt-10 ">
-        <div className="flex min-h-full max-w-md w-full  flex-col justify-center px-6 py-12 lg:px-12 rounded-3xl shadow-xl p-8 border border-gray-100">
+      <div className="relative min-h-screen overflow-hidden px-4 py-10">
+        <img
+          src="/UniSphere_Login_Background.svg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 h-full w-full object-cover opacity-70"
+        />
+        <div className="absolute inset-0 -z-10 bg-white/45"></div>
+      <div className="flex justify-center mt-10  ">
+        <div className="flex min-h-full max-w-md w-full  flex-col justify-center px-6 py-12 lg:px-12 rounded-3xl shadow-2xl shadow-orange-950/10 p-8 border border-white/70 bg-white/85 backdrop-blur-md ring-1 ring-orange-100/70 ">
           <div className="sm:mx-auto sm:w-full sm:max-w-sm ">
             <img
               src="/blackglobe.png"
               alt="UniSphere"
               className="mx-auto h-50 w-auto"
             />
-            <h2 className="mt-5 text-center text-2xl/9 font-bold tracking-tight text-gray-900">
+            <h2 className="mt-5 text-center text-2xl/9 font-bold tracking-tight text-unisphere-orange">
               Log in to your account
             </h2>
           </div>
@@ -140,8 +149,8 @@ const storedToken = localStorage.getItem("token");
                     required
                     autoComplete="email"
                     placeholder="student@pu.edu.np"
-                    className="block w-full rounded-xl bg-gray-50 px-3.5 py-2.5 text-base 
-                  text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                    className="block w-full rounded-xl border border-orange-100/80 bg-white/85 px-3.5 py-2.5 text-base 
+                  text-gray-900 shadow-sm outline-none placeholder:text-gray-400 transition focus:border-unisphere-orange focus:bg-white focus:ring-4 focus:ring-orange-100 sm:text-sm/6"
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
@@ -176,7 +185,7 @@ const storedToken = localStorage.getItem("token");
                     required
                     autoComplete="current-password"
                     placeholder="Min. 8 characters"
-                    className="block   placeholder:text-gray-400  pr-12 w-full rounded-xl bg-gray-50 px-3.5 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                    className="block placeholder:text-gray-400 pr-12 w-full rounded-xl border border-orange-100/80 bg-white/85 px-3.5 py-2.5 text-base text-gray-900 shadow-sm outline-none placeholder:text-gray-400 transition focus:border-unisphere-orange focus:bg-white focus:ring-4 focus:ring-orange-100 sm:text-sm/6"
                     onChange={(e) => setPassword(e.target.value)}
                    
                   />
@@ -193,7 +202,7 @@ const storedToken = localStorage.getItem("token");
               <div>
                 <button
                   type="submit"
-                  className="flex w-full justify-center rounded-xl bg-unisphere-orange px-3 py-3 text-sm/6 font-semibold text-white shadow-xs hover:bg-unisphere-orange-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:cursor-pointer"
+                  className="flex w-full justify-center rounded-xl bg-unisphere-orange px-3 py-3 text-sm/6 font-semibold text-white shadow-lg shadow-orange-500/25 transition hover:bg-unisphere-orange-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-unisphere-orange hover:cursor-pointer"
                    disabled={loading}
                 >
                   Log in
@@ -213,8 +222,12 @@ const storedToken = localStorage.getItem("token");
           </div>
         </div>
       </div>
+      </div>
     </>
   );
 };
 
 export default Login;
+
+  
+  
