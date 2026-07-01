@@ -12,6 +12,7 @@ import VerifyOtp from "./pages/VerifyOtp";
 import ResetPassword from "./pages/ResetPassword";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import SearchResult from "./pages/SearchResult";
 
 
 const RootRoute = () => {
@@ -44,6 +45,8 @@ const App = () => {
            <Route path="/profile" element={<Profile />} />
           <Route path="/notice" element={<Notice />} />
           <Route path="/notes" element={<Notes />} />
+           <Route path="/search-result" element={<SearchResult />} />
+
           
            </Route>
         

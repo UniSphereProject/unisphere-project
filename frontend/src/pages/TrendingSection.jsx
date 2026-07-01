@@ -1,27 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
 import { TrendingUp, ThumbsUp, MessageCircle, Loader2, Flame, Clock } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-
-const timeAgo = (dateStr) => {
-  if (!dateStr) return "";
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMs = now - date;
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-};
+import api from "../lib/api";
+import { timeAgo } from "../lib/format";
 
 const TrendingSection = () => {
   const { token } = useAuth();
-  const BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
-
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,10 +15,7 @@ const TrendingSection = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(`${BASE_URL}/trending`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { limit: 10 },
-      });
+      const res = await api.get("/trending", { params: { limit: 10 } });
       setPosts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed to fetch trending posts:", err);
@@ -42,7 +23,7 @@ const TrendingSection = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, BASE_URL]);
+  }, [token]);
 
   useEffect(() => {
     fetchTrending();
@@ -51,15 +32,13 @@ const TrendingSection = () => {
   return (
     <div className="w-80 shrink-0 hidden lg:block">
       <div className="sticky top-20 space-y-3">
-        {/* Header card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-b from-unisphere-orange to-orange-700 px-4 py-3 flex items-center gap-2">
+          <div className="bg-gradient-to-b from-orange-500 to-orange-700 px-4 py-3 flex items-center gap-2">
             <Flame size={18} className="text-white" />
             <h2 className="text-white font-bold text-sm tracking-wide">Trending Now</h2>
           </div>
 
           <div className="p-3">
-            {/* Loading state */}
             {loading && (
               <div className="flex flex-col items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 text-orange-500 animate-spin mb-2" />
@@ -67,7 +46,6 @@ const TrendingSection = () => {
               </div>
             )}
 
-            {/* Error state */}
             {!loading && error && (
               <div className="text-center py-6">
                 <p className="text-xs text-gray-400 mb-2">{error}</p>
@@ -80,7 +58,6 @@ const TrendingSection = () => {
               </div>
             )}
 
-            {/* Empty state */}
             {!loading && !error && posts.length === 0 && (
               <div className="text-center py-6">
                 <TrendingUp className="w-8 h-8 text-gray-300 mx-auto mb-2" />
@@ -89,7 +66,6 @@ const TrendingSection = () => {
               </div>
             )}
 
-            {/* Posts list */}
             {!loading && !error && posts.length > 0 && (
               <ul className="space-y-1">
                 {posts.map((post, index) => {
@@ -102,10 +78,7 @@ const TrendingSection = () => {
 
                   return (
                     <li key={post.id}>
-                      <div
-                        className="group flex gap-2.5 p-2 rounded-lg hover:bg-orange-50/60 transition cursor-pointer"
-                      >
-                        {/* Rank number */}
+                      <div className="group flex gap-2.5 p-2 rounded-lg hover:bg-orange-50/60 transition cursor-pointer">
                         <span
                           className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5 ${
                             index < 3
@@ -116,13 +89,11 @@ const TrendingSection = () => {
                           {index + 1}
                         </span>
 
-                        {/* Content */}
                         <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-semibold text-gray-800 leading-snug line-clamp-2 group-hover:text-orange-600 transition">
                             {post.title}
                           </p>
 
-                          {/* Meta row */}
                           <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
                             <span className="truncate max-w-[80px]">{authorName}</span>
                             {communityName && (
@@ -135,7 +106,6 @@ const TrendingSection = () => {
                             )}
                           </div>
 
-                          {/* Stats row */}
                           <div className="flex items-center gap-3 mt-1.5">
                             <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-400">
                               <ThumbsUp size={10} /> {likes}
@@ -150,7 +120,6 @@ const TrendingSection = () => {
                         </div>
                       </div>
 
-                      {/* Divider (except after last) */}
                       {index < posts.length - 1 && (
                         <div className="border-b border-gray-100 mx-2" />
                       )}

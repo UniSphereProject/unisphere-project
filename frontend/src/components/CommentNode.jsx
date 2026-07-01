@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { ThumbsUp, ThumbsDown, MessageSquare, Trash2, ChevronRight } from "lucide-react";
+import { ThumbsUp, ThumbsDown, MessageSquare, Trash2, ChevronRight, Loader2 } from "lucide-react";
+import { timeAgo } from "../lib/format";
+
 // Helper to generate consistent avatar colors based on name
 const getAvatarColor = (name) => {
   const colors = [
@@ -25,57 +27,73 @@ const getAvatarColor = (name) => {
 const CommentNode = ({
   comment,
   depth = 0,
-  currentUser = "You",
+  currentUserId,
   onAddReply,
   onVote,
   onDelete,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showReplyInput, setShowReplyInput] = useState(false);
-  const [replyContent, setReplyContent] = useState("");
-  const [userVote, setUserVote] = useState(null); // 'up', 'down', or null
+  const [replyContent, setReplyContent] = useState(false ? "" : "");
+  const [replyAnonymous, setReplyAnonymous] = useState(false);
+  const [submittingReply, setSubmittingReply] = useState(false);
+  const [voting, setVoting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const handleVote = (type) => {
-    let voteDiff = 0;
-    if (type === "up") {
-      if (userVote === "up") {
-        setUserVote(null);
-        voteDiff = -1;
-      } else if (userVote === "down") {
-        setUserVote("up");
-        voteDiff = 2;
-      } else {
-        setUserVote("up");
-        voteDiff = 1;
-      }
-    } else {
-      if (userVote === "down") {
-        setUserVote(null);
-        voteDiff = 1;
-      } else if (userVote === "up") {
-        setUserVote("down");
-        voteDiff = -2;
-      } else {
-        setUserVote("down");
-        voteDiff = -1;
-      }
+  const authorName = comment.is_anonymous
+    ? "Anonymous"
+    : comment.author?.name || "Unknown";
+
+  const isDeleted = comment.content === "[deleted]";
+
+  const isMyComment =
+    !comment.is_anonymous &&
+    comment.author?.id != null &&
+    currentUserId != null &&
+    String(comment.author.id) === String(currentUserId);
+
+  const userVote = comment.reaction_summary?.user_reaction || null;
+  const likes = comment.reaction_summary?.likes || 0;
+  const dislikes = comment.reaction_summary?.dislikes || 0;
+
+  const handleVote = async (type) => {
+    if (voting || isDeleted) return;
+    setVoting(true);
+    try {
+      await onVote(comment.id, type);
+    } finally {
+      setVoting(false);
     }
-    onVote(comment.id, voteDiff);
   };
 
-  const handleSubmitReply = (e) => {
+  const handleSubmitReply = async (e) => {
     e.preventDefault();
-    if (!replyContent.trim()) return;
-    onAddReply(comment.id, replyContent.trim());
-    setReplyContent("");
-    setShowReplyInput(false);
+    if (!replyContent.trim() || submittingReply) return;
+    setSubmittingReply(true);
+    try {
+      await onAddReply(comment.id, replyContent.trim(), replyAnonymous);
+      setReplyContent("");
+      setReplyAnonymous(false);
+      setShowReplyInput(false);
+    } finally {
+      setSubmittingReply(false);
+    }
   };
 
-  const initials = comment.author
-    ? comment.author.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "?";
+  const handleDelete = async () => {
+    if (deleting) return;
+    if (!window.confirm("Are you sure you want to delete this comment?")) return;
+    setDeleting(true);
+    try {
+      await onDelete(comment.id);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
-  const isMyComment = comment.author === currentUser || comment.author === "You";
+  const initials = authorName
+    ? authorName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "?";
 
   return (
     <div className="mt-4 flex flex-col">
@@ -86,14 +104,14 @@ const CommentNode = ({
           {/* Avatar */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold select-none cursor-pointer ${ 
-              comment.avatarColor || getAvatarColor(comment.author)
-            } hover:scale-105 transition-transform`}
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold select-none cursor-pointer ${getAvatarColor(
+              authorName
+            )} hover:scale-105 transition-transform`}
             title={isCollapsed ? "Expand thread" : "Collapse thread"}
           >
             {isCollapsed ? "+" : initials}
           </button>
-          
+
           {/* Thread connector line */}
           {!isCollapsed && comment.replies && comment.replies.length > 0 && (
             <div
@@ -109,14 +127,14 @@ const CommentNode = ({
           {/* Header */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-gray-900">
-              {comment.author}
+              {authorName}
             </span>
             {isMyComment && (
               <span className="px-1.5 py-0.2 bg-orange-100 text-orange-600 rounded text-xs font-medium border border-orange-200">
                 You
               </span>
             )}
-            <span className="text-xs text-gray-400">{comment.timestamp}</span>
+            <span className="text-xs text-gray-400">{timeAgo(comment.created_at)}</span>
             {isCollapsed && (
               <button
                 onClick={() => setIsCollapsed(false)}
@@ -131,56 +149,62 @@ const CommentNode = ({
           {/* Comment Body */}
           {!isCollapsed && (
             <div className="mt-1">
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+              <p className={`text-sm leading-relaxed whitespace-pre-wrap ${isDeleted ? "italic text-gray-400" : "text-gray-700"}`}>
                 {comment.content}
               </p>
 
               {/* Actions Footer */}
-              <div className="flex items-center gap-4 mt-2 text-gray-500 text-xs select-none">
-                {/* Upvote */}
-                <button
-                  onClick={() => handleVote("up")}
-                  className={`flex items-center gap-1 hover:text-green-600 cursor-pointer transition-colors p-1 rounded hover:bg-gray-50 ${
-                    userVote === "up" ? "text-green-600 font-bold" : ""
-                  }`}
-                >
-                  <ThumbsUp size={13} />
-                  <span>{comment.votes}</span>
-                </button>
-
-                {/* Downvote */}
-                <button
-                  onClick={() => handleVote("down")}
-                  className={`flex items-center gap-1 hover:text-red-500 cursor-pointer transition-colors p-1 rounded hover:bg-gray-50 ${
-                    userVote === "down" ? "text-red-500 font-bold" : ""
-                  }`}
-                >
-                  <ThumbsDown size={13} />
-                </button>
-
-                {/* Reply Button */}
-                <button
-                  onClick={() => setShowReplyInput(!showReplyInput)}
-                  className={`flex items-center gap-1 hover:text-orange-500 cursor-pointer transition-colors p-1 rounded hover:bg-gray-50 ${
-                    showReplyInput ? "text-orange-500 font-bold" : ""
-                  }`}
-                >
-                  <MessageSquare size={13} />
-                  <span>Reply</span>
-                </button>
-
-                {/* Delete Button */}
-                {(isMyComment || comment.id.startsWith("temp_")) && (
+              {!isDeleted && (
+                <div className="flex items-center gap-4 mt-2 text-gray-500 text-xs select-none">
+                  {/* Upvote */}
                   <button
-                    onClick={() => onDelete(comment.id)}
-                    className="flex items-center gap-1 hover:text-red-500 cursor-pointer transition-colors ml-auto p-1 rounded hover:bg-gray-50 text-gray-400"
-                    title="Delete comment"
+                    onClick={() => handleVote("like")}
+                    disabled={voting}
+                    className={`flex items-center gap-1 hover:text-green-600 cursor-pointer transition-colors p-1 rounded hover:bg-gray-50 disabled:opacity-50 ${
+                      userVote === "like" ? "text-green-600 font-bold" : ""
+                    }`}
                   >
-                    <Trash2 size={13} />
-                    <span>Delete</span>
+                    <ThumbsUp size={13} />
+                    <span>{likes}</span>
                   </button>
-                )}
-              </div>
+
+                  {/* Downvote */}
+                  <button
+                    onClick={() => handleVote("dislike")}
+                    disabled={voting}
+                    className={`flex items-center gap-1 hover:text-red-500 cursor-pointer transition-colors p-1 rounded hover:bg-gray-50 disabled:opacity-50 ${
+                      userVote === "dislike" ? "text-red-500 font-bold" : ""
+                    }`}
+                  >
+                    <ThumbsDown size={13} />
+                    <span>{dislikes}</span>
+                  </button>
+
+                  {/* Reply Button */}
+                  <button
+                    onClick={() => setShowReplyInput(!showReplyInput)}
+                    className={`flex items-center gap-1 hover:text-orange-500 cursor-pointer transition-colors p-1 rounded hover:bg-gray-50 ${
+                      showReplyInput ? "text-orange-500 font-bold" : ""
+                    }`}
+                  >
+                    <MessageSquare size={13} />
+                    <span>Reply</span>
+                  </button>
+
+                  {/* Delete Button */}
+                  {isMyComment && (
+                    <button
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="flex items-center gap-1 hover:text-red-500 cursor-pointer transition-colors ml-auto p-1 rounded hover:bg-gray-50 text-gray-400 disabled:opacity-50"
+                      title="Delete comment"
+                    >
+                      {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                      <span>Delete</span>
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Inline Reply Input */}
               {showReplyInput && (
@@ -192,28 +216,40 @@ const CommentNode = ({
                     rows={2}
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
-                    placeholder={`Reply to ${comment.author}...`}
+                    placeholder={`Reply to ${authorName}...`}
                     className="w-full text-sm p-2 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500 placeholder:text-gray-400"
                     autoFocus
                   />
-                  <div className="flex justify-end gap-2 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowReplyInput(false);
-                        setReplyContent("");
-                      }}
-                      className="px-3 py-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={!replyContent.trim()}
-                      className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Reply
-                    </button>
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <label className="flex items-center gap-1.5 text-gray-500 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={replyAnonymous}
+                        onChange={(e) => setReplyAnonymous(e.target.checked)}
+                        className="rounded border-gray-300 text-orange-500 focus:ring-orange-300"
+                      />
+                      Reply anonymously
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowReplyInput(false);
+                          setReplyContent("");
+                        }}
+                        className="px-3 py-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={!replyContent.trim() || submittingReply}
+                        className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      >
+                        {submittingReply && <Loader2 size={12} className="animate-spin" />}
+                        Reply
+                      </button>
+                    </div>
                   </div>
                 </form>
               )}
@@ -230,7 +266,7 @@ const CommentNode = ({
                       key={reply.id}
                       comment={reply}
                       depth={depth + 1}
-                      currentUser={currentUser}
+                      currentUserId={currentUserId}
                       onAddReply={onAddReply}
                       onVote={onVote}
                       onDelete={onDelete}
