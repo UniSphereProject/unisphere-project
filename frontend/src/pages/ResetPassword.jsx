@@ -1,15 +1,11 @@
-import  { useState } from "react";
-import { useLocation } from "react-router-dom";
-import { ToastContainer,toast } from "react-toastify";
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
 import { Lock, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
-import { useNavigate, useSearchParams } from "react-router-dom";
 
 const ResetPassword = () => {
-  const [searchParams] = useSearchParams();
-
   const location = useLocation();
   const token = location.state?.resetToken;
 
@@ -81,11 +77,14 @@ console.log("token", token);
 
     <>
 
-    <ToastContainer  toastStyle={{
-    width: "400px",
-    fontSize: "18px",
-    padding: "16px",
-  }}/>
+    <ToastContainer
+      toastStyle={{
+        maxWidth: "calc(100vw - 32px)",
+        fontSize: "14px",
+        padding: "12px",
+      }}
+      bodyStyle={{ width: "auto" }}
+    />
   
     <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">

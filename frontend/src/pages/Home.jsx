@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import Discussion from "../components/Discussion";
 import Navbar from "../components/Navbar";
@@ -10,7 +10,7 @@ import API from "../utils/api";
 
 const Home = () => {
   // ── Search highlight state ──────────────────────────────────────────
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const highlightPostId = searchParams.get("post");
   const highlightRef = useRef(null);
 
@@ -20,11 +20,38 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // ── Community filter ──────────────────────────────────────────────────
-  const [activeCommunitySlug, setActiveCommunitySlug] = useState(null);
+  // ── Community filter ────────────────────────────────────────────────
+  // Initialize from the `community` query param so links from other
+  // pages (e.g. the Sidebar on /notes or /projects, or the mobile nav
+  // drawer) can deep-link straight into a filtered feed.
+  const [activeCommunitySlug, setActiveCommunitySlug] = useState(
+    () => searchParams.get("community") || null
+  );
 
   // ── Create post modal ────────────────────────────────────────────────
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  // Auto-open if navigated here with `?create=1` (used by the mobile
+  // nav drawer's Create Post button).
+  const [showCreateModal, setShowCreateModal] = useState(
+    () => searchParams.get("create") === "1"
+  );
+
+  // ── Keep activeCommunitySlug in sync if the `community` query param
+  // changes while already on this page (e.g. clicking another sidebar
+  // item, or a fresh navigation from /notes -> /home?community=...) ──
+  useEffect(() => {
+    const slugFromUrl = searchParams.get("community");
+    if (slugFromUrl !== activeCommunitySlug) {
+      setActiveCommunitySlug(slugFromUrl || null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Open the Create Post modal if `?create=1` shows up later too
+  useEffect(() => {
+    if (searchParams.get("create") === "1") {
+      setShowCreateModal(true);
+    }
+  }, [searchParams]);
 
   // ── Fetch feed ────────────────────────────────────────────────────────
   const fetchFeed = useCallback(
@@ -88,7 +115,17 @@ const Home = () => {
 
   // ── Community selection from sidebar ──────────────────────────────────
   const handleCommunitySelect = (slug) => {
-    setActiveCommunitySlug((prev) => (prev === slug ? null : slug));
+    setActiveCommunitySlug((prev) => {
+      const next = prev === slug ? null : slug;
+      const params = new URLSearchParams(searchParams);
+      if (next) {
+        params.set("community", next);
+      } else {
+        params.delete("community");
+      }
+      setSearchParams(params, { replace: true });
+      return next;
+    });
   };
 
   // ── Refresh after creating a post ──────────────────────────────────────
@@ -108,8 +145,8 @@ const Home = () => {
             onCreatePost={() => setShowCreateModal(true)}
           />
 
-          {/* Main Feed */}
-          <div className="mt-16 flex-1 px-4 py-4">
+	          {/* Main Feed */}
+	          <div className="mt-16 flex-1 px-2 sm:px-4 py-4 ml-0 md:ml-64 min-w-0">
             {/* Active filter indicator */}
             {activeCommunitySlug && (
               <div className="mb-4 flex items-center gap-2">
@@ -118,7 +155,12 @@ const Home = () => {
                   {activeCommunitySlug.replace(/-/g, " ")}
                 </span>
                 <button
-                  onClick={() => setActiveCommunitySlug(null)}
+                  onClick={() => {
+                    setActiveCommunitySlug(null);
+                    const params = new URLSearchParams(searchParams);
+                    params.delete("community");
+                    setSearchParams(params, { replace: true });
+                  }}
                   className="text-xs text-gray-400 hover:text-red-500 cursor-pointer"
                 >
                   Clear
@@ -182,18 +224,25 @@ const Home = () => {
             )}
           </div>
 
-          {/* Right Trending Panel — hidden on small screens */}
-          <div className="mt-16 w-72 hidden lg:block pr-4 py-4">
-            <div className="sticky top-20">
-              <TrendingPanel />
-            </div>
-          </div>
+	          {/* Right Trending Panel — hidden on small screens */}
+	          <div className="mt-16 w-96 hidden lg:block pr-6 py-4 shrink-0">
+	            <div className="sticky top-20">
+	              <TrendingPanel />
+	            </div>
+	          </div>
         </div>
 
         {/* Create Post Modal */}
         <CreatePostModal
           isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => {
+            setShowCreateModal(false);
+            if (searchParams.get("create")) {
+              const params = new URLSearchParams(searchParams);
+              params.delete("create");
+              setSearchParams(params, { replace: true });
+            }
+          }}
           onPostCreated={handlePostCreated}
           defaultCommunitySlug={activeCommunitySlug}
         />

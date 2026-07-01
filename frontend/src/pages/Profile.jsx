@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { User, Camera, Save, Edit2, Loader2, Award, BookOpen, Calendar, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -50,10 +50,6 @@ const Profile = () => {
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState("");
 
-  useEffect(() => {
-    fetchProfile();
-  }, [token]);
-
   const fetchProfile = async () => {
     setLoading(true);
     setError(null);
@@ -72,6 +68,11 @@ const Profile = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -151,9 +152,12 @@ const Profile = () => {
     <div className="bg-slate-100 min-h-screen">
       <Navbar />
       <div className="flex">
-        <Sidebar />
-        <div className="mt-16 flex-1 ml-16 md:ml-64 p-4 md:p-8">
-          <div className="max-w-2xl mx-auto bg-white border border-gray-200 rounded-xl shadow-lg p-6 border-l-4 border-orange-400">
+        <Sidebar
+          onCommunitySelect={(slug) => navigate(`/home?community=${slug}`)}
+          onCreatePost={() => navigate('/home?create=1')}
+        />
+        <div className="mt-16 flex-1 ml-0 md:ml-64 p-4 md:p-8">
+          <div className="max-w-2xl mx-auto bg-white border border-gray-200 rounded-xl shadow-lg p-4 sm:p-6 border-l-4 border-orange-400">
 
             {/* Header */}
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
@@ -199,7 +203,7 @@ const Profile = () => {
 
             {/* Main Content */}
             {(!loading || isEditing) && (
-              <div className="flex flex-col md:flex-row gap-8">
+              <div className="flex flex-col sm:flex-row gap-6 sm:gap-8">
 
                 {/* Avatar */}
                 <div className="flex flex-col items-center gap-3 shrink-0">

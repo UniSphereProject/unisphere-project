@@ -1,6 +1,8 @@
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { SidebarProvider } from "./context/SidebarContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
@@ -29,7 +31,9 @@ const RootRoute = () => {
 
 const App = () => {
   return (
+    <ErrorBoundary>
     <AuthProvider>
+    <SidebarProvider>
       <Routes>
         {/* public routes - anyone can visit these */}
         <Route path="/" element={<RootRoute />} />
@@ -42,21 +46,23 @@ const App = () => {
         
           <Route element={<ProtectedRoute />}>
 
-	           <Route path="/home" element={<Home />} />
-	           <Route path="/profile" element={<Profile />} />
-	          <Route path="/notice" element={<Notice />} />
-	          <Route path="/notes" element={<Notes />} />
-		          <Route path="/projects" element={<Projects />} />
-		          <Route path="/post/:id" element={<PostDetail />} />
+		           <Route path="/home" element={<Home />} />
+		           <Route path="/profile" element={<Profile />} />
+		          <Route path="/notice" element={<Notice />} />
+		          <Route path="/notes" element={<Notes />} />
+				          <Route path="/projects" element={<Projects />} />
+				          <Route path="/post/:id" element={<PostDetail />} />
 
-		           </Route>
+				           </Route>
         
      
       
          
        
       </Routes>
+      </SidebarProvider>
     </AuthProvider>
+    </ErrorBoundary>
   );
 };
 

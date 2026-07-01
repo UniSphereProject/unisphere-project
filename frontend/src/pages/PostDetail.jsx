@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Discussion from "../components/Discussion";
 import Navbar from "../components/Navbar";
@@ -44,10 +44,13 @@ const PostDetail = () => {
       <Navbar />
       <div className="flex">
         {/* Left Sidebar */}
-        <Sidebar />
+        <Sidebar
+          onCommunitySelect={(slug) => navigate(`/home?community=${slug}`)}
+          onCreatePost={() => navigate('/home?create=1')}
+        />
 
-        {/* Main Content — same max-width as Home feed */}
-        <div className="mt-16 flex-1 px-4 py-4">
+	          {/* Main Content */}
+	          <div className="mt-16 flex-1 px-2 sm:px-4 py-4 ml-0 md:ml-64 min-w-0">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="w-8 h-8 border-4 border-gray-300 border-t-orange-500 rounded-full animate-spin"></div>

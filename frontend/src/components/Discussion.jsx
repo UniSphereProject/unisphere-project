@@ -1,5 +1,15 @@
-import React, { useState, useCallback } from "react";
-import { ThumbsUp, ThumbsDown, MessageCircle, Clock, ShieldCheck } from "lucide-react";
+import { useState, useCallback } from "react";
+import {
+  ThumbsUp,
+  ThumbsDown,
+  MessageCircle,
+  Clock,
+  ShieldCheck,
+  Download,
+  Loader2,
+  Eye,
+} from "lucide-react";
+import { toast } from "react-toastify";
 import CommentSection from "./CommentSection";
 import API from "../utils/api";
 
@@ -44,15 +54,77 @@ const typeBadgeColor = (type) => {
 
 const Discussion = ({ post }) => {
   // ── Local reaction state (optimistic) ────────────────────────────────
-  const rs = post.reaction_summary || { likes: 0, dislikes: 0, user_reaction: null };
+  const rs = post.reaction_summary || {
+    likes: 0,
+    dislikes: 0,
+    user_reaction: null,
+  };
   const [likes, setLikes] = useState(rs.likes);
   const [dislikes, setDislikes] = useState(rs.dislikes);
   const [userVote, setUserVote] = useState(rs.user_reaction);
   const [reacting, setReacting] = useState(false);
-
+  const [imgError, setImgError] = useState(false);
+  const [refreshedUrl, setRefreshedUrl] = useState(null);
+  // ── Download (notes) ────────────────────────────────────────────────
+  const [downloading, setDownloading] = useState(false);
   // ── Comments ───────────────────────────────────────────────────────────
   const [showComments, setShowComments] = useState(false);
   const [commentCount, setCommentCount] = useState(post.comment_count || 0);
+
+  const handleImageError = async () => {
+    if (refreshedUrl || imgError) return;
+
+    try {
+      const res = await API.get(`/posts/${post.id}/view-url?type=image`);
+      setRefreshedUrl(res.data.url);
+    } catch (err) {
+      console.error("Failed to refresh image URL:", err);
+      setImgError(true);
+    }
+  };
+
+  // ── Robust file download using fetch + Blob ───────────────────────────
+  const handleDownload = async () => {
+    if (downloading || !post.id) return;
+    setDownloading(true);
+    try {
+      const res = await API.get(`/posts/${post.id}/view-url?type=file`);
+      const url = res.data?.url;
+      if (!url) {
+        toast.error("Download URL not available. Please try again.");
+        return;
+      }
+      // Fetch the file and trigger a real browser download
+      const fileRes = await fetch(url);
+      if (!fileRes.ok) throw new Error("Failed to fetch file");
+      const blob = await fileRes.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      if (post.file_name) link.download = post.file_name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Download failed:", err);
+      const detail = err.response?.data?.detail;
+      toast.error(
+        detail ||
+          "Download failed. The file may have been removed or is unavailable."
+      );
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // ── View file (Coming Soon) ────────────────────────────────────────────
+  const handleView = () => {
+    toast.info("🔜 Coming Soon!", {
+      position: "top-center",
+      autoClose: 2000,
+    });
+  };
 
   // ── React handler ────────────────────────────────────────────────────
   const handleReact = useCallback(
@@ -104,10 +176,12 @@ const Discussion = ({ post }) => {
     : post.author?.name || "Unknown User";
 
   return (
-    <div className="p-4 border border-gray-200 rounded-xl shadow-lg bg-white m-4 hover:shadow-md transition mx-auto w-full max-w-xl border-l-4 border-orange-400">
+    <div className="p-3 sm:p-4 border border-gray-200 rounded-xl shadow-lg bg-white m-1 sm:m-2 hover:shadow-md transition mx-auto w-full border-l-4 border-orange-400">
       {/* Author row */}
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-sm text-orange-600 font-medium">{authorName}</span>
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
+        <span className="text-sm text-orange-600 font-medium">
+          {authorName}
+        </span>
         {post.author?.profile_image_url && (
           <img
             src={post.author.profile_image_url}
@@ -120,43 +194,93 @@ const Discussion = ({ post }) => {
           {timeAgo(post.created_at)}
         </span>
         {post.is_teacher_verified && (
-          <ShieldCheck size={16} className="text-green-600" title="Teacher verified" />
+          <ShieldCheck
+            size={16}
+            className="text-green-600"
+            title="Teacher verified"
+          />
         )}
       </div>
 
       {/* Post type badge */}
       {post.post_type && (
-        <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full mb-2 ${typeBadgeColor(post.post_type)}`}>
+        <span
+          className={`inline-block text-[10px] px-2 py-0.5 rounded-full mb-2 ${typeBadgeColor(post.post_type)}`}
+        >
           {post.post_type?.replace("_", " ")}
         </span>
       )}
 
       {/* Title */}
-      <p className="text-xl font-bold text-gray-900 mb-3">{post.title}</p>
+      <p className="text-lg sm:text-xl font-bold text-gray-900 mb-3">
+        {post.title}
+      </p>
 
       {/* Content */}
       {post.body && (
-        <p className="text-sm text-gray-700 mb-3 whitespace-pre-wrap">{post.body}</p>
+        <p className="text-sm text-gray-700 mb-3 whitespace-pre-wrap">
+          {post.body}
+        </p>
       )}
 
       {/* Image (only if exists) */}
       {post.image_url && (
-        <img
-          className="w-full h-auto object-cover rounded-lg mb-3"
-          alt="discussion"
-          src={post.image_url}
-        />
+	        <img
+	          className="w-full max-h-80 object-cover rounded-lg mb-3"
+	          alt="discussion"
+	          src={refreshedUrl || post.image_url}
+	          onError={handleImageError}
+	        />
+      )}
+
+      {/* File download (notes type) */}
+      {post.post_type === "notes" && (post.file_url || post.file_name) && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg mb-3 gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-800 truncate">
+              {post.file_name || "Attached File"}
+            </p>
+            {post.file_size && (
+              <p className="text-xs text-gray-400">
+                {(post.file_size / 1024 / 1024).toFixed(1)} MB
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2 shrink-0">
+            <button
+              onClick={handleView}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg disabled:opacity-50 cursor-pointer transition active:scale-95"
+            >
+              <Eye size={14} />
+              <span>View</span>
+            </button>
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg disabled:opacity-50 cursor-pointer transition active:scale-95"
+            >
+              {downloading ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Download size={14} />
+              )}
+              <span>{downloading ? "Fetching..." : "Download"}</span>
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Community name */}
       {post.community && (
-        <span className="text-xs text-gray-400 mb-2 block">in {post.community.name}</span>
+        <span className="text-xs text-gray-400 mb-2 block">
+          in {post.community.name}
+        </span>
       )}
 
       {/* Actions */}
       <div className="flex items-center gap-4 text-gray-600 border-b border-gray-50 pb-2">
         <button
-          className={`flex items-center gap-1 hover:text-green-600 transition hover:cursor-pointer p-1 rounded-md hover:bg-gray-50 ${
+          className={`flex items-center gap-1 hover:text-green-600 transition cursor-pointer p-2 rounded-md hover:bg-gray-50 touch-manipulation ${
             userVote === "like" ? "text-green-600 font-semibold" : ""
           }`}
           onClick={() => handleReact("like")}
@@ -167,7 +291,7 @@ const Discussion = ({ post }) => {
         </button>
 
         <button
-          className={`flex items-center gap-1 hover:text-red-500 transition hover:cursor-pointer p-1 rounded-md hover:bg-gray-50 ${
+          className={`flex items-center gap-1 hover:text-red-500 transition cursor-pointer p-2 rounded-md hover:bg-gray-50 touch-manipulation ${
             userVote === "dislike" ? "text-red-500 font-semibold" : ""
           }`}
           onClick={() => handleReact("dislike")}
@@ -179,7 +303,7 @@ const Discussion = ({ post }) => {
 
         <button
           onClick={() => setShowComments(!showComments)}
-          className={`flex items-center gap-1.5 transition hover:cursor-pointer p-1 rounded-md ${
+          className={`flex items-center gap-1.5 transition cursor-pointer p-2 rounded-md touch-manipulation ${
             showComments
               ? "text-orange-500 bg-orange-50"
               : "hover:text-orange-500 hover:bg-gray-50"
@@ -192,10 +316,7 @@ const Discussion = ({ post }) => {
 
       {/* Comment Section Panel */}
       {showComments && (
-        <CommentSection
-          postId={post.id}
-          onCommentCountChange={setCommentCount}
-        />
+        <CommentSection postId={post.id} onCommentCountChange={setCommentCount} />
       )}
     </div>
   );

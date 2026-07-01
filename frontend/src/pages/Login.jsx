@@ -66,7 +66,7 @@ const storedToken = localStorage.getItem("token");
      setLoadingText('Sending OTP to your mail...')
     try {
      
-      let res = await axios.post(
+      await axios.post(
         `${BASE_URL}/api/auth/forgot-password`,
         { email },
       );
@@ -91,14 +91,18 @@ const storedToken = localStorage.getItem("token");
         </div>
       )}
 
- <ToastContainer  toastStyle={{
-    width: "400px",
-    fontSize: "18px",
-    padding: "16px",
-  }}/>
+ <ToastContainer
+  toastStyle={{
+    maxWidth: "calc(100vw - 32px)",
+    width: "auto",
+    fontSize: "14px",
+    padding: "12px",
+  }}
+  bodyStyle={{ width: "auto" }}
+/>
   
-      <div className="flex justify-center mt-10 ">
-        <div className="flex min-h-full max-w-md w-full  flex-col justify-center px-6 py-12 lg:px-12 rounded-3xl shadow-xl p-8 border border-gray-100">
+      <div className="flex justify-center mt-6 sm:mt-10 px-2">
+        <div className="flex min-h-full max-w-md w-full flex-col justify-center px-4 sm:px-6 py-8 sm:py-12 lg:px-12 rounded-3xl shadow-xl border border-gray-100">
           <div className="sm:mx-auto sm:w-full sm:max-w-sm ">
             <img
               src="/blackglobe.png"

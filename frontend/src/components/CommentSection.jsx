@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import CommentNode from "./CommentNode";
 import { useAuth } from "../context/AuthContext";
 import { Send, Loader2 } from "lucide-react";

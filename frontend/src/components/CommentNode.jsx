@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { ThumbsUp, ThumbsDown, MessageSquare, Trash2, ChevronRight } from "lucide-react";
 
 // Helper to generate consistent avatar colors based on name

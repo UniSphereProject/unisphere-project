@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { User ,Eye,EyeOff} from "lucide-react";
 import { Link ,useNavigate} from "react-router-dom";
@@ -146,7 +146,7 @@ setConfirmPassword("");
 
 
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-5 sm:p-8 border border-gray-100">
 
         {/* Header */}
         <div className="text-center mb-8">

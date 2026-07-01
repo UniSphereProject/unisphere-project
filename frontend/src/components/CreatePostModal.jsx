@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { X, Loader2, Send, MapPin, Tag, Link, FileUp, EyeOff, Image } from "lucide-react";
+import { X, Loader2, Send, MapPin, Tag, FileUp, FileText, EyeOff, Image } from "lucide-react";
 import { toast } from "react-toastify";
 import API from "../utils/api";
 
@@ -7,11 +7,11 @@ import API from "../utils/api";
  * CreatePostModal — dynamic modal form that adapts fields based on community kind.
  *
  * Community kinds and their extra fields:
- *   discussion   → body, is_anonymous, image_url
+ *   discussion   → body, is_anonymous, image_url (upload)
  *   notes        → body, file_url*, file_name, is_anonymous
- *   lost_found   → body, item_state*, location, image_url, is_anonymous
+ *   lost_found   → body, item_state*, location, image_url (upload), is_anonymous
  *   complaint    → body, is_anonymous
- *   announcement → body, is_anonymous
+ *   announcement → body, is_anonymous, image_url (upload)
  *
  *   * = backend-required for this kind
  *
@@ -44,6 +44,131 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated, defaultCommunitySlug 
   const [fileName, setFileName] = useState("");           // notes
   const [isAnonymous, setIsAnonymous] = useState(false);  // all kinds
 
+
+
+  const [imageFile, setImageFile] = useState(null);       // File object
+  const [imagePreview, setImagePreview] = useState(null);  // base64 preview URL
+  const [imageUploading, setImageUploading] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState(null); // presigned URL from backend
+  const [uploadedImageKey, setUploadedImageKey] = useState(null); // MinIO key
+
+  // File upload state (notes)
+  const [noteFile, setNoteFile] = useState(null);
+  const [fileUploading, setFileUploading] = useState(false);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState(null);
+  const [uploadedFileKey, setUploadedFileKey] = useState(null);
+  const [uploadedFileName, setUploadedFileName] = useState(null);
+  const [uploadedFileSize, setUploadedFileSize] = useState(null);
+
+  // Refs for file inputs — needed for mobile click triggers
+  const imageInputRef = React.useRef(null);
+  const fileInputRef = React.useRef(null);
+
+  // ── Image upload (discussion, lost_found) ──────────────────────────
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (e.target.value) e.target.value = "";
+    if (!file) return;
+
+    // Client-side validation
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Invalid image type. Accepted: JPEG, PNG, WebP, GIF");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image too large. Max 10MB.");
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleImageUpload = async () => {
+    if (!imageFile) return;
+    setImageUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", imageFile);
+      const res = await API.post("/upload/image", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setUploadedImageUrl(res.data.url);
+      setUploadedImageKey(res.data.key);
+      toast.success("Image uploaded!");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Image upload failed");
+      setImagePreview(null);
+      setImageFile(null);
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleImageRemove = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setUploadedImageUrl(null);
+    setUploadedImageKey(null);
+  };
+
+  // ── File upload (notes) ────────────────────────────────────────
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (e.target.value) e.target.value = "";
+    if (!file) return;
+
+    const allowedTypes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "application/msword",
+      "application/vnd.ms-powerpoint",
+      "text/plain",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Invalid file type. Accepted: PDF, DOCX, PPTX, DOC, PPT, TXT");
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("File too large. Max 50MB.");
+      return;
+    }
+
+    setNoteFile(file);
+  };
+
+  const handleFileUpload = async () => {
+    if (!noteFile) return;
+    setFileUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", noteFile);
+      const res = await API.post("/upload/file", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setUploadedFileUrl(res.data.url);
+      setUploadedFileKey(res.data.key);
+      setUploadedFileName(res.data.file_name);
+      setUploadedFileSize(res.data.file_size);
+      toast.success("File uploaded!");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "File upload failed");
+      setNoteFile(null);
+    } finally {
+      setFileUploading(false);
+    }
+  };
+
+  const handleFileRemove = () => {
+    setNoteFile(null);
+    setUploadedFileUrl(null);
+    setUploadedFileKey(null);
+    setUploadedFileName(null);
+    setUploadedFileSize(null);
+  };
+
   // ── Resolve the selected community's kind ────────────────────────────
   const selectedCommunity = useMemo(
     () => communities.find((c) => String(c.id) === communityId),
@@ -52,10 +177,6 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated, defaultCommunitySlug 
   const kind = selectedCommunity?.kind || null;
 
   // ── Fetch communities ────────────────────────────────────────────────
-  useEffect(() => {
-    if (isOpen) fetchCommunities();
-  }, [isOpen]);
-
   const fetchCommunities = async () => {
     setLoadingCommunities(true);
     try {
@@ -74,6 +195,11 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated, defaultCommunitySlug 
     }
   };
 
+  useEffect(() => {
+    if (isOpen) fetchCommunities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
   // ── Reset kind-specific fields when community changes ─────────────────
   useEffect(() => {
     setItemState("");
@@ -82,25 +208,40 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated, defaultCommunitySlug 
     setFileUrl("");
     setFileName("");
     setIsAnonymous(false);
+    // Clear image upload state
+    setImageFile(null);
+    setImagePreview(null);
+    setImageUploading(false);
+    setUploadedImageUrl(null);
+    setUploadedImageKey(null);
+    // Clear file upload state (notes)
+    setNoteFile(null);
+    setFileUploading(false);
+    setUploadedFileUrl(null);
+    setUploadedFileKey(null);
+    setUploadedFileName(null);
+    setUploadedFileSize(null);
   }, [communityId]);
 
   // ── Validate required fields per kind ─────────────────────────────────
   const isValid = useMemo(() => {
     if (!title.trim() || !communityId) return false;
     if (kind === "lost_found" && !itemState) return false;
-    if (kind === "notes" && !fileUrl.trim()) return false;
+    if (kind === "notes" && !fileUrl.trim() && !uploadedFileUrl) return false;
     return true;
-  }, [title, communityId, kind, itemState, fileUrl]);
+  }, [title, communityId, kind, itemState, fileUrl, uploadedFileUrl]);
 
   // ── Submit handler ────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!isValid) {
       toast.error("Please fill all required fields");
       return;
     }
 
     setLoading(true);
+
     try {
       const payload = {
         title: title.trim(),
@@ -109,29 +250,76 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated, defaultCommunitySlug 
         is_anonymous: isAnonymous,
       };
 
-      // Add kind-specific fields
+      // ── Lost & Found ─────────────────────────────────────
       if (kind === "lost_found") {
         payload.item_state = itemState;
-        if (location.trim()) payload.location = location.trim();
-        if (imageUrl.trim()) payload.image_url = imageUrl.trim();
+
+        if (location.trim()) {
+          payload.location = location.trim();
+        }
+
+        // Prefer uploaded image, fallback to manual URL
+        if (uploadedImageUrl || imageUrl.trim()) {
+          payload.image_url = uploadedImageUrl || imageUrl.trim();
+        }
+
+        // Send MinIO object key if available
+        if (uploadedImageKey) {
+          payload.image_key = uploadedImageKey;
+        }
       }
 
+      // ── Notes ────────────────────────────────────────────
       if (kind === "notes") {
-        payload.file_url = fileUrl.trim();
-        if (fileName.trim()) payload.file_name = fileName.trim();
+        // Prefer uploaded file, fallback to manual URL
+        payload.file_url = uploadedFileUrl || fileUrl.trim();
+
+        if (uploadedFileKey) {
+          payload.file_key = uploadedFileKey;
+        }
+
+        // Prefer uploaded metadata
+        if (uploadedFileName || fileName.trim()) {
+          payload.file_name = uploadedFileName || fileName.trim();
+        }
+
+        if (uploadedFileSize) {
+          payload.file_size = uploadedFileSize;
+        }
       }
 
+      // ── Discussion ───────────────────────────────────────
       if (kind === "discussion") {
-        if (imageUrl.trim()) payload.image_url = imageUrl.trim();
+        if (uploadedImageUrl || imageUrl.trim()) {
+          payload.image_url = uploadedImageUrl || imageUrl.trim();
+        }
+
+        if (uploadedImageKey) {
+          payload.image_key = uploadedImageKey;
+        }
+      }
+
+      // ── Announcement ──────────────────────────────────
+      if (kind === "announcement") {
+        if (uploadedImageUrl || imageUrl.trim()) {
+          payload.image_url = uploadedImageUrl || imageUrl.trim();
+        }
+
+        if (uploadedImageKey) {
+          payload.image_key = uploadedImageKey;
+        }
       }
 
       await API.post("/posts", payload);
+
       toast.success("Post created successfully!");
+
       resetForm();
       onPostCreated?.();
       onClose();
     } catch (err) {
       const detail = err.response?.data?.detail;
+
       if (typeof detail === "string") {
         toast.error(detail);
       } else {
@@ -152,6 +340,19 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated, defaultCommunitySlug 
     setFileUrl("");
     setFileName("");
     setIsAnonymous(false);
+    // Clear image upload state
+    setImageFile(null);
+    setImagePreview(null);
+    setImageUploading(false);
+    setUploadedImageUrl(null);
+    setUploadedImageKey(null);
+    // Clear file upload state (notes)
+    setNoteFile(null);
+    setFileUploading(false);
+    setUploadedFileUrl(null);
+    setUploadedFileKey(null);
+    setUploadedFileName(null);
+    setUploadedFileSize(null);
   };
 
   const handleClose = () => {
@@ -170,18 +371,114 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated, defaultCommunitySlug 
     announcement: "Announcement",
   };
 
+  // ── Shared image upload UI ─────────────────────────────────────────────
+  const imageUploadUI = (hoverColor = "orange") => (
+    <div className="space-y-3">
+      <label className="block text-sm font-semibold text-gray-700">
+        <Image size={14} className="inline mr-1" />
+        Image
+      </label>
+
+      {/* Uploaded — show preview */}
+      {uploadedImageUrl ? (
+        <div className="relative group">
+          <img
+            src={imagePreview}
+            alt="Preview"
+            className="w-full h-36 sm:h-48 object-cover rounded-xl border border-gray-200"
+          />
+          <button
+            type="button"
+            onClick={handleImageRemove}
+            className="absolute top-2 right-2 p-1.5 bg-white/80 rounded-full hover:bg-red-100 text-gray-600 hover:text-red-500 cursor-pointer transition"
+          >
+            <X size={16} />
+          </button>
+          <span className="absolute bottom-2 left-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
+            ✓ Uploaded
+          </span>
+        </div>
+      ) : imageFile ? (
+        /* File selected but not yet uploaded */
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl">
+          <img
+            src={imagePreview}
+            alt="Preview"
+            className="w-full sm:w-16 h-32 sm:h-16 object-cover rounded-lg border"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-gray-700 truncate">{imageFile.name}</p>
+            <p className="text-xs text-gray-400">
+              {(imageFile.size / 1024 / 1024).toFixed(1)} MB
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleImageUpload}
+              disabled={imageUploading}
+              className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg disabled:opacity-50 cursor-pointer transition"
+            >
+              {imageUploading ? <Loader2 size={14} className="animate-spin" /> : "Upload"}
+            </button>
+            <button
+              type="button"
+              onClick={handleImageRemove}
+              className="p-1.5 text-gray-400 hover:text-red-500 cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* No file selected — show upload button */
+        <div
+          onClick={() => imageInputRef.current?.click()}
+          className={`flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-${hoverColor}-400 hover:text-${hoverColor}-500 cursor-pointer transition`}
+        >
+          <Image size={20} />
+          <span>Tap to upload an image</span>
+        </div>
+      )}
+
+      {/* Visually-hidden but functional file input for mobile */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        onChange={handleImageSelect}
+        className="sr-only"
+        aria-label="Upload image"
+      />
+
+      {/* OR paste URL manually */}
+      <details className="text-xs text-gray-400">
+        <summary className="cursor-pointer hover:text-gray-600">
+          Or paste image URL manually
+        </summary>
+        <input
+          type="url"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+          placeholder="https://example.com/image.jpg"
+          className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500 bg-white placeholder:text-gray-400"
+        />
+      </details>
+    </div>
+  );
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm"
         onClick={handleClose}
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto animate-fadeIn">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-2 sm:mx-4 my-4 sm:my-0 max-h-[90vh] overflow-y-auto animate-fadeIn">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between p-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
           <div>
             <h2 className="text-lg font-bold text-gray-900">Create Post</h2>
             {kind && (
@@ -199,7 +496,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated, defaultCommunitySlug 
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4">
           {/* ── Community select ─────────────────────────────────────── */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -278,7 +575,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated, defaultCommunitySlug 
 
           {/* ── LOST_FOUND fields ────────────────────────────────────── */}
           {kind === "lost_found" && (
-            <div className="space-y-4 p-4 bg-amber-50/60 rounded-xl border border-amber-100">
+            <div className="space-y-4 p-3 sm:p-4 bg-amber-50/60 rounded-xl border border-amber-100">
               <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">
                 Lost & Found Details
               </p>
@@ -330,47 +627,106 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated, defaultCommunitySlug 
                 />
               </div>
 
-              {/* Image URL */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  <Image size={14} className="inline mr-1" />
-                  Image URL
-                </label>
-                <input
-                  type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://example.com/photo.jpg"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500 bg-white placeholder:text-gray-400"
-                />
-              </div>
+              {/* Image Upload */}
+              {imageUploadUI("amber")}
             </div>
           )}
 
           {/* ── NOTES fields ─────────────────────────────────────────── */}
           {kind === "notes" && (
-            <div className="space-y-4 p-4 bg-green-50/60 rounded-xl border border-green-100">
+            <div className="space-y-4 p-3 sm:p-4 bg-green-50/60 rounded-xl border border-green-100">
               <p className="text-xs font-semibold text-green-700 uppercase tracking-wider">
                 Notes Details
               </p>
 
-              {/* File URL — REQUIRED */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+              {/* File Upload — REQUIRED */}
+              <div className="space-y-3">
+                <label className="block text-sm font-semibold text-gray-700">
                   <FileUp size={14} className="inline mr-1" />
-                  File URL <span className="text-red-500">*</span>
+                  File <span className="text-red-500">*</span>
                 </label>
+
+                {/* If file already uploaded */}
+                {uploadedFileUrl ? (
+                  <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-xl">
+                    <FileText size={24} className="text-green-600 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{uploadedFileName}</p>
+                      <p className="text-xs text-gray-400">
+                        {(uploadedFileSize / 1024 / 1024).toFixed(1)} MB · ✓ Uploaded
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleFileRemove}
+                      className="p-1 text-gray-400 hover:text-red-500 cursor-pointer"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : noteFile ? (
+                  /* File selected but not yet uploaded */
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                    <FileText size={24} className="text-gray-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-700 truncate">{noteFile.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {(noteFile.size / 1024 / 1024).toFixed(1)} MB
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleFileUpload}
+                        disabled={fileUploading}
+                        className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg disabled:opacity-50 cursor-pointer transition"
+                      >
+                        {fileUploading ? <Loader2 size={14} className="animate-spin" /> : "Upload"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleFileRemove}
+                        className="p-1.5 text-gray-400 hover:text-red-500 cursor-pointer"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* No file selected — use visible button instead of hidden input */
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex flex-col items-center justify-center p-4 sm:p-6 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-green-400 hover:text-green-600 cursor-pointer transition"
+                  >
+                    <FileUp size={24} className="mb-2" />
+                    <span className="font-medium">Tap to upload a file</span>
+                    <span className="text-xs text-gray-400 mt-1">PDF, DOCX, PPTX — max 50MB</span>
+                  </div>
+                )}
+
+                {/* Accessible file input for mobile — uses sr-only (screen-reader only, still clickable) */}
                 <input
-                  type="url"
-                  value={fileUrl}
-                  onChange={(e) => setFileUrl(e.target.value)}
-                  placeholder="https://example.com/notes.pdf"
-                  required
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500 bg-white placeholder:text-gray-400"
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.pptx,.doc,.ppt,.txt"
+                  onChange={handleFileSelect}
+                  className="sr-only"
+                  aria-label="Upload notes file"
                 />
-                <p className="text-[11px] text-gray-400 mt-1">
-                  Direct link to the notes file (PDF, DOCX, etc.)
-                </p>
+
+                {/* OR paste URL manually */}
+                <details className="text-xs text-gray-400">
+                  <summary className="cursor-pointer hover:text-gray-600">
+                    Or paste file URL manually (Google Drive, etc.)
+                  </summary>
+                  <input
+                    type="url"
+                    value={fileUrl}
+                    onChange={(e) => setFileUrl(e.target.value)}
+                    placeholder="https://drive.google.com/..."
+                    className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500 bg-white placeholder:text-gray-400"
+                  />
+                </details>
               </div>
 
               {/* File Name */}
@@ -391,25 +747,21 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated, defaultCommunitySlug 
 
           {/* ── DISCUSSION extra fields ──────────────────────────────── */}
           {kind === "discussion" && (
-            <div className="space-y-4 p-4 bg-blue-50/60 rounded-xl border border-blue-100">
+            <div className="space-y-4 p-3 sm:p-4 bg-blue-50/60 rounded-xl border border-blue-100">
               <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider">
                 Discussion Details
               </p>
+              {imageUploadUI("orange")}
+            </div>
+          )}
 
-              {/* Image URL */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  <Image size={14} className="inline mr-1" />
-                  Image URL
-                </label>
-                <input
-                  type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500 bg-white placeholder:text-gray-400"
-                />
-              </div>
+          {/* ── ANNOUNCEMENT extra fields ───────────────────────────── */}
+          {kind === "announcement" && (
+            <div className="space-y-4 p-3 sm:p-4 bg-purple-50/60 rounded-xl border border-purple-100">
+              <p className="text-xs font-semibold text-purple-700 uppercase tracking-wider">
+                Announcement Details
+              </p>
+              {imageUploadUI("purple")}
             </div>
           )}
 

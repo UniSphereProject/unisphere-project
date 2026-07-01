@@ -1,16 +1,20 @@
-import React from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { FolderOpen, Construction } from "lucide-react";
 
 const Projects = () => {
+  const navigate = useNavigate();
   return (
     <>
       <div className="bg-slate-100 min-h-screen m-0">
         <Navbar />
         <div className="flex">
-          <Sidebar />
-          <div className="mt-16 flex-1 flex flex-col items-center justify-center px-4 py-20">
+          <Sidebar
+            onCommunitySelect={(slug) => navigate(`/home?community=${slug}`)}
+            onCreatePost={() => navigate('/home?create=1')}
+          />
+          <div className="mt-16 flex-1 flex flex-col items-center justify-center px-4 py-20 ml-0 md:ml-64">
             <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-10 text-center max-w-md">
               <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-5">
                 <FolderOpen size={32} className="text-orange-500" />

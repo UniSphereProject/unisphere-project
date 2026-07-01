@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { TrendingUp, MessageCircle, ThumbsUp, Loader2, Flame } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MessageCircle, ThumbsUp, Loader2, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import API from "../utils/api";
 
@@ -7,10 +7,6 @@ const TrendingPanel = () => {
   const navigate = useNavigate();
   const [trending, setTrending] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchTrending();
-  }, []);
 
   const fetchTrending = async () => {
     setLoading(true);
@@ -23,6 +19,10 @@ const TrendingPanel = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchTrending();
+  }, []);
 
   const timeAgo = (dateStr) => {
     if (!dateStr) return "";

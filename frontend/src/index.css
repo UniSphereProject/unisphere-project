@@ -5,16 +5,85 @@
   --color-unisphere-dark: #111111;
   --color-unisphere-light: #FFFFFF;
 }
-*{
+
+* {
   box-sizing: border-box;
- 
+  -webkit-tap-highlight-color: transparent;
 }
-.root{
-  margin: 0%;
+
+html {
+  margin: 0;
+  padding: 0;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  margin: 0;
+  min-height: 100vh;
 }
 
 @keyframes pulseHighlight {
   0%   { box-shadow: 0 0 0 0 rgba(255, 165, 0, 0.5); }
   50%  { box-shadow: 0 0 12px 4px rgba(255, 165, 0, 0.35); }
   100% { box-shadow: 0 0 0 0 rgba(255, 165, 0, 0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Better scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Touch manipulation — prevent double-tap zoom on buttons */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Provide good touch targets for interactive elements on mobile */
+button, a, input[type="file"], input[type="button"], input[type="submit"] {
+  touch-action: manipulation;
+}
+
+/* Ensure form inputs have decent min sizes */
+input[type="text"], input[type="email"], input[type="password"], input[type="search"], select, textarea {
+  min-height: 40px;
+}
+
+/* Icon buttons shouldn't be forced to 44px — they have their own sizing */
+button > svg, a > svg {
+  display: block;
 }
