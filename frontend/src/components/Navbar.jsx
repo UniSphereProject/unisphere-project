@@ -1,4 +1,4 @@
-import { Search, Bell, User, LogOut, Loader2 } from 'lucide-react'
+import { Search, User, LogOut, Loader2 ,MessageSquare,FileText,X} from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useState } from 'react'
@@ -9,6 +9,7 @@ const Navbar = () => {
   const { logout } = useAuth()
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+ 
 
   const handleLogout = async () => {
     try {
@@ -26,19 +27,8 @@ const Navbar = () => {
   const handleSearch = async(e) => {
     e.preventDefault()
     let cleanQuery=searchQuery.trim()
-    try {
-       if (cleanQuery.length >= 1) {
-      const res=await api.get('/search',{params:{q:cleanQuery}})
-      console.log(res.data)
-       }
-
-      if(res.data){
-        navigate(`/search-result?q=${encodeURIComponent(cleanQuery)}`)
-      }
-    
-    } catch (error) {
-      console.log(error.message)
-    }
+    if(!cleanQuery) return 
+    navigate(`/search-result?q=${encodeURIComponent(cleanQuery)}`)
    
   }
 
