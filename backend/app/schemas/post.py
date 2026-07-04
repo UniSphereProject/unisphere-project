@@ -47,6 +47,9 @@ class PostCreate(BaseModel):
     file_url: str | None = None
     file_name: str | None = None
     extra_data: dict[str, Any] | None = None
+    image_key: str | None = None
+    file_size: int | None = None
+    file_type: str | None = None
 
 class PostUpdate(BaseModel):
     title: Annotated[str, Field(min_length=1, max_length=300)] | None = None
@@ -76,6 +79,9 @@ class PostOut(BaseModel):
     file_url: str | None = None
     file_key: str | None = None
     file_name: str | None = None
+    image_key: str | None = None
+    file_size: int | None = None
+    file_type: str | None = None
     location: str | None
     extra_data: dict[str, Any] | None = None
     technologies: str | None = None

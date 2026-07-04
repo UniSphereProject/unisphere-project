@@ -39,6 +39,9 @@ class Post(Base,TimestampMixin):
     file_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     file_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     file_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    image_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    file_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     # Verification Fields
     is_teacher_verified: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -9,6 +9,8 @@ from app.routes.communities import router as community_router
 from app.routes.post import router as post_router
 from app.routes.student_detail import router as student_profile_router
 from app.routes.post_interaction import router as post_interation_router
+from app.routes.upload import router as upload_router
+
 from app.routes import auth
 from app.utils.logger import get_logger
 from app.models.user import User
@@ -76,6 +78,7 @@ app.include_router(community_router)
 app.include_router(student_profile_router)
 app.include_router(post_router)
 app.include_router(post_interation_router)
+app.include_router(upload_router)
 
 
 

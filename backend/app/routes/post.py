@@ -12,6 +12,7 @@ from app.models.user import User
 from app.models.post_interaction import PostReaction, PostComment
 from app.schemas.post import *
 from app.utils.oauth2 import get_current_user
+from app.utils.supabase_client import supabase_client
 
 from app.schemas.post import PostOut, PostAuthorOut, CommunityBrief, PostCreate, PostUpdate, PostFeedOut
 
@@ -133,7 +134,7 @@ def create_post(
         raise HTTPException(status_code=404, detail="Community not found")
 
     post_type = community.kind
-    if post_type == "announcement" and str(current_user.role) != "moderator":
+    if post_type == "announcement" and str(current_user.role) == "moderator":
         raise HTTPException(status_code=403, detail="Only moderators can post announcements.")
 
     data = payload.model_dump()
@@ -171,6 +172,9 @@ def create_post(
         location=data.get("location"),
         image_url=data.get("image_url"),
         file_url=data.get("file_url"),
+        image_key=data.get("image_key"),
+        file_size=data.get("file_size"),
+        file_type=data.get("file_type"),
         file_key=data.get("file_key"),
         file_name=data.get("file_name"),
         extra_data=extra_data if extra_data else None,
@@ -223,19 +227,6 @@ def update_post(
     db.commit()
     db.refresh(post)
     return _enrich_post(db, post, current_user.id)
-
-
-@router.delete("/posts/{post_id}", status_code=204)
-def delete_post(
-    post_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    post = _get_post_or_404(db, post_id)
-    if post.user_id != current_user.id and str(current_user.role) != "moderator":
-        raise HTTPException(status_code=403, detail="Not authorized to delete this post.")
-    db.delete(post)
-    db.commit()
 
 
 @router.get("/feed", response_model=PostFeedOut)
@@ -340,6 +331,8 @@ def unverify_post(
     db.commit()
     db.refresh(post)
     return _enrich_post(db, post, current_user.id)
+
+
 @router.get("/search", response_model=list[PostOut], tags=["Search"])
 def search_posts(
     q: str = Query(..., min_length=2, description="Search query string"),
@@ -359,6 +352,7 @@ def search_posts(
     posts = db.scalars(stmt).all()
     user_id = current_user.id if current_user else None
     return [_enrich_post(db, p, user_id) for p in posts]
+
 
 @router.get("/trending", response_model=list[PostOut], tags=["Trending"])
 def get_trending_posts(
@@ -398,3 +392,59 @@ def get_trending_posts(
     posts = db.scalars(stmt).all()
     user_id = current_user.id if current_user else None
     return [_enrich_post(db, p, user_id) for p in posts]
+
+
+@router.get("/posts/{post_id}/view-url")
+def get_view_url(
+    post_id: int,
+    type: str = Query(default="image", description="image or file"),
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
+):
+    """
+    Return a fresh signed URL for a post's image or file.
+
+    Called by the frontend when a stored signed URL has expired.
+    """
+    post = _get_post_or_404(db, post_id)
+
+    if type == "image":
+        key = getattr(post, "image_key", None)
+    elif type == "file":
+        key = post.file_key
+    else:
+        raise HTTPException(status_code=400, detail="type must be 'image' or 'file'")
+
+    if not key:
+        # Fallback: if no key exists but a URL does, return the URL directly
+        url = post.image_url if type == "image" else post.file_url
+        if url:
+            return {"url": url, "expires_in": None}
+        raise HTTPException(status_code=404, detail="No file associated with this post")
+
+    try:
+        signed = supabase_client.get_presigned_url(key, expires=900)
+    except Exception:
+        raise HTTPException(status_code=503, detail="Failed to generate URL")
+
+    return {"url": signed, "expires_in": 900}
+
+
+@router.delete("/posts/{post_id}", status_code=204)
+def delete_post(
+    post_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    post = _get_post_or_404(db, post_id)
+    if post.user_id != current_user.id and str(current_user.role) != "moderator":
+        raise HTTPException(status_code=403, detail="Not authorized to delete this post.")
+
+    # Clean up Supabase Storage objects
+    if getattr(post, "image_key", None):
+        supabase_client.delete_file(post.image_key)
+    if post.file_key:
+        supabase_client.delete_file(post.file_key)
+
+    db.delete(post)
+    db.commit()
