@@ -25,6 +25,8 @@ from app.utils.oauth2 import get_current_user
 
 from app.schemas.otp import ChangePass
 
+from app.schemas.auth import Token, UserOut
+
 router=APIRouter(
     prefix="/api/auth",
     tags=["Authentication"]
@@ -159,10 +161,8 @@ def login(
     db.commit()
 
     oauth2.set_refresh_cookie(response, refresh_token)
-    return {
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
+    return Token(access_token=access_token, user=UserOut.model_validate(user))
+
 
 
 @router.post("/refresh")

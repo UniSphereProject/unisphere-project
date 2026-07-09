@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, Annotated
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -33,6 +34,9 @@ class Users(BaseModel):
 class UserOut(BaseModel):
     name:str
     id:int
+    role: str
+    created_at: datetime
+
 
     class Config:
         from_attributes = True
@@ -42,7 +46,8 @@ class UserLogin(BaseModel):
 
 class Token(BaseModel):
     access_token:str
-    token_type:str
+    token_type:str="bearer"
+    user:UserOut
 class TokenData(BaseModel):
     id:Optional[str]=None
     scope: Optional[str] = None
