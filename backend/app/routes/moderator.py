@@ -18,7 +18,7 @@ def fetch_users(
 db: Session = Depends(get_db),
 current: User = Depends(get_current_user),
 ) :
-    if current.role != "moderator":
+    if current.role.value != "moderator":
        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
     user = db.query(User).all()
