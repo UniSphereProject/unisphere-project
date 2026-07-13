@@ -12,9 +12,9 @@ from app.routes.student_detail import router as student_profile_router
 from app.routes.post_interaction import router as post_interation_router
 from app.routes.upload import router as upload_router
 from app.models.past_project import PastProject
-# from app.routes.moderator import router as moderator_router
+from app.routes.moderator import router as moderator_router
 # from app.routes.claims import router as claims_router
-from app.routes.moderation import router as moderation_router
+# from app.routes.moderation import router as moderation_router
 # from app.routes.notifications import router as notifications_router
 from app.routes.past_project import router as past_project_router
 
@@ -98,7 +98,7 @@ app.include_router(upload_router)
 # app.include_router(claims_router)
 # app.include_router(moderation_router)
 # app.include_router(notifications_router)
-app.include_router(moderation_router)
+app.include_router(moderator_router)
 app.include_router(past_project_router)
 
 
