@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from typing import Optional, Annotated
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -51,3 +52,10 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     id:Optional[str]=None
     scope: Optional[str] = None
+class UserRole(str, Enum):
+    user = "user"
+    moderator = "moderator"
+    teacher = "teacher"
+class UserRoleUpdate(BaseModel):
+    id:int
+    role: UserRole
