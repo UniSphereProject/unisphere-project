@@ -3,10 +3,10 @@ from typing import List
 from fastapi import APIRouter,status,Depends,HTTPException
 from sqlalchemy.orm.session import Session
 
-from backend.app.models.database import get_db
-from backend.app.models.user import User
-from backend.app.schemas.auth import UserOut, UserRoleUpdate
-from backend.app.utils.oauth2 import get_current_user
+from app.models.database import get_db
+from app.models.user import User
+from app.schemas.auth import UserOut, UserRoleUpdate
+from app.utils.oauth2 import get_current_user
 
 router=APIRouter(
     prefix="/moderator",
