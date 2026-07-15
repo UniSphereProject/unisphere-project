@@ -109,6 +109,7 @@ def _enrich_post(db: Session, post: Post, current_user_id: int | None = None) ->
         image_url=post.image_url,
         file_url=post.file_url,
         file_name=post.file_name,
+        file_type=post.file_type,
         extra_data=post.extra_data,
         is_teacher_verified=post.is_teacher_verified,
         comment_count=comment_count,
