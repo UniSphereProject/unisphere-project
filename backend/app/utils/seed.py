@@ -13,7 +13,6 @@ ROOT_COMMUNITIES = [
     ("placements", "Placements", "discussion"),
     ("events", "Events", "discussion"),
     ("campus-life", "Campus Life", "discussion"),
-    ("complaints", "Complaints", "complaint"),
     ("lost-and-found", "Lost and Found", "lost_found"),
     ("announcements", "Announcements", "announcement"),
     ("complain","Complain","discussion")
