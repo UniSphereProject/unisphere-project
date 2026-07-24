@@ -29,6 +29,15 @@ class Settings(BaseSettings):
     SUPABASE_URL:str
     SUPABASE_KEY :str
     SUPABASE_BUCKET:str
+    SBERT_MODEL_NAME: str = "all-MiniLM-L6-v2"
+    CLIP_MODEL_NAME: str = "clip-ViT-B-32"
+    MATCH_SCORE_THRESHOLD: float = 0.60
+    MATCH_TEXT_WEIGHT: float = 0.6
+    MATCH_IMAGE_WEIGHT: float = 0.4
+    MATCH_SCHEDULER_INTERVAL_MINUTES: int = 60
+    MATCH_LOOKBACK_DAYS: int = 60
+    MATCH_TOP_K: int = 5
+    AI_MATCHING_ENABLED: bool = True
     model_config = {
         "env_file": ".env",
     }

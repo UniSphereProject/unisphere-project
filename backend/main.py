@@ -13,20 +13,19 @@ from app.routes.post_interaction import router as post_interation_router
 from app.routes.upload import router as upload_router
 from app.models.past_project import PastProject
 from app.routes.moderator import router as moderator_router
-# from app.routes.claims import router as claims_router
-# from app.routes.moderation import router as moderation_router
-# from app.routes.notifications import router as notifications_router
+from app.routes.matches import router as matches_router
+from app.routes.notifications import router as notifications_router
 from app.routes.past_project import router as past_project_router
 
 from app.routes import auth
 from app.utils.logger import get_logger
 from app.models.user import User
 from app.models.verification_record import VerificationRecord
-# from app.models.lost_found import PostEmbedding, MatchRecord, Claim, Notification
+from app.models.lost_found import PostEmbedding, MatchRecord, Notification
 from app.utils.config import settings
 from app.utils.security import hash_password
 from app.utils.seed import create_community
-# from app.utils.scheduler import start_scheduler, stop_scheduler
+from app.utils.scheduler import start_scheduler, stop_scheduler
 
 logger = get_logger(__name__)
 
@@ -36,10 +35,11 @@ async def lifespan(app: FastAPI):
     db = sessionLocal()
 
     try:
-        # with engine.connect() as conn:
-        #     # conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        #     conn.commit()
-        # logger.info("pgvector extension ready")
+        # pgvector extension must exist before the embedding tables are created
+        with engine.connect() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            conn.commit()
+        logger.info("pgvector extension ready")
 
         Base.metadata.create_all(bind=engine)
         logger.info("DB ready")
@@ -70,9 +70,10 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
-    # start_scheduler()
+    # AI Lost & Found: hourly matching job (embeds posts, finds matches, notifies)
+    start_scheduler()
     yield
-    # stop_scheduler()
+    stop_scheduler()
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
@@ -95,9 +96,8 @@ app.include_router(student_profile_router)
 app.include_router(post_router)
 app.include_router(post_interation_router)
 app.include_router(upload_router)
-# app.include_router(claims_router)
-# app.include_router(moderation_router)
-# app.include_router(notifications_router)
+app.include_router(matches_router)
+app.include_router(notifications_router)
 app.include_router(moderator_router)
 app.include_router(past_project_router)
 

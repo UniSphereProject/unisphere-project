@@ -125,6 +125,16 @@ class SupabaseStorageClient:
 
         return self.bucket.get_public_url(key)
 
+    def download_file(self, key: str) -> bytes | None:
+        """Download an object's raw bytes (used by the AI image matcher)."""
+        if not key:
+            return None
+        try:
+            return self.bucket.download(key)
+        except Exception as exc:
+            logger.warning("Failed to download %s: %s", key, exc)
+            return None
+
     # ── Delete ─────────────────────────────────────────────────────
 
     def delete_file(self, key: str) -> None:
