@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.past_project import ProjectType, VerificationStatus
 
-
+from app.models.past_project import ProjectType
 class PastProjectCreate(BaseModel):
     title: str = Field(..., max_length=255)
     description: str
@@ -37,6 +37,7 @@ class PastProjectOut(BaseModel):
     file_type: str | None = None
 
     submitted_by: int
+    submitter: VerifierInfo | None = None
     verification_status: VerificationStatus
     verified_by: int | None = None
     verifier: VerifierInfo | None = None
@@ -51,3 +52,10 @@ class PastProjectOut(BaseModel):
 class PastProjectVerifyRequest(BaseModel):
     status: VerificationStatus
     rejection_reason: str | None = None
+class PastProjectUpdateRequest(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    project_type: ProjectType | None = None
+    team_members: list[str] | None = None
+    batch: str | None = None
+    stream: str | None = None

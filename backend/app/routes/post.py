@@ -8,8 +8,10 @@ from sqlalchemy.orm import Session
 from app.models.database import get_db
 from app.models.posts import Post
 from app.models.communities import Community
-from app.models.user import User
+from app.models.user import User, UserRoles
+from app.models.student_detail import StudentDetail
 from app.models.post_interaction import PostReaction, PostComment
+from app.schemas.post import *
 from app.schemas.post import *
 from app.utils.oauth2 import get_current_user
 from app.utils.supabase_client import supabase_client
@@ -17,6 +19,7 @@ from app.utils.supabase_client import supabase_client
 from app.schemas.post import PostOut, PostAuthorOut, CommunityBrief, PostCreate, PostUpdate, PostFeedOut
 
 from app.schemas.post import ReactionSummaryOut
+from sqlalchemy import cast, String
 
 router = APIRouter(tags=["Posts"])
 
@@ -62,6 +65,7 @@ def _enrich_post(db: Session, post: Post, current_user_id: int | None = None) ->
             name=post.user.name,
             profile_image_url=post.user.profile_image_url,
             role=str(post.user.role.value),
+            batch=post.user.student_profile.batch if post.user.student_profile else None,
         )
 
     community = None
@@ -99,6 +103,7 @@ def _enrich_post(db: Session, post: Post, current_user_id: int | None = None) ->
 
     return PostOut(
         id=post.id,
+        user_id=post.user.id,
         title=post.title,
         body=post.body,
         community_id=post.community_id,
@@ -240,6 +245,11 @@ def get_feed(
         default=None, description="Complaint status: open, in_progress, resolved"
     ),
     item_state: str | None = Query(default=None, description="Lost/Found: lost, found"),
+    batch: str | None = Query(default=None, description="Filter by batch/year (e.g., 2024)"),
+    stream: str | None = Query(default=None, description="Filter by stream (e.g., Engineering)"),
+    program: str | None = Query(default=None, description="Filter by program (e.g., Computer Science)"),
+    title: str | None = Query(default=None, description="Filter by title (e.g., Cybersecurity)"),
+    verified: bool | None = Query(default=None, description="Filter by verification status (true for verified only)"),
     sort: str = Query(default="latest", description="latest, oldest, top"),
     cursor: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
@@ -265,6 +275,40 @@ def get_feed(
         stmt = stmt.where(Post.status == status)
     if item_state:
         stmt = stmt.where(Post.item_state == item_state)
+
+    # Filter by title (case-insensitive partial match)
+    if title:
+        title = title.strip()
+        if title:
+            stmt = stmt.where(Post.title.ilike(f"%{title}%"))
+
+    # Filter by verified (only show verified notes)
+    if verified:
+        stmt = stmt.where(Post.is_teacher_verified == True)
+
+    # Filter by stream (requires joining with StudentDetail through user)
+    if stream:
+        stream = stream.strip()
+        if stream:
+            stmt = stmt.join(Post.user).join(User.student_profile).where(
+                StudentDetail.stream.ilike(f"%{stream}%")
+            )
+
+    # Filter by program (requires joining with StudentDetail through user)
+    if program:
+        program = program.strip()
+        if program:
+            stmt = stmt.join(Post.user).join(User.student_profile).where(
+                StudentDetail.program.ilike(f"%{program}%")
+            )
+
+    # Filter by batch (requires joining with StudentDetail through user)
+    if batch:
+        batch = batch.strip()
+        if batch:
+            stmt = stmt.join(Post.user).join(User.student_profile).where(
+                StudentDetail.batch.ilike(f"%{batch}%")
+            )
 
     if cursor:
         c_ca, c_id = _decode_cursor(cursor)
@@ -295,6 +339,7 @@ def get_feed(
     )
 
 
+
 @router.post("/posts/{post_id}/verify", response_model=PostOut)
 def verify_post(
     post_id: int,
@@ -302,8 +347,11 @@ def verify_post(
     current_user: User = Depends(get_current_user),
 ):
     post = _get_post_or_404(db, post_id)
-    if str(current_user.role) not in ("teacher", "moderator"):
-        raise HTTPException(status_code=403, detail="Only teachers can verify posts.")
+    if current_user.role.value != "teacher":
+        raise HTTPException(
+            status_code=403,
+            detail="Only teachers and moderators can verify posts."
+        )
 
     post.is_teacher_verified = True
     post.verified_by = current_user.id
@@ -311,9 +359,8 @@ def verify_post(
 
     db.commit()
     db.refresh(post)
+
     return _enrich_post(db, post, current_user.id)
-
-
 @router.post("/posts/{post_id}/unverify", response_model=PostOut)
 def unverify_post(
     post_id: int,
@@ -321,8 +368,11 @@ def unverify_post(
     current_user: User = Depends(get_current_user),
 ):
     post = _get_post_or_404(db, post_id)
-    if str(current_user.role) not in ("teacher", "moderator"):
-        raise HTTPException(status_code=403, detail="Only teachers can unverify posts.")
+    if current_user.role.value != "teacher":
+        raise HTTPException(
+            status_code=403,
+            detail="Only teachers and moderators can unverify posts."
+        )
 
     post.is_teacher_verified = False
     post.verified_by = None
@@ -437,7 +487,7 @@ def delete_post(
     db: Session = Depends(get_db),
 ):
     post = _get_post_or_404(db, post_id)
-    if post.user_id != current_user.id and str(current_user.role) != "moderator":
+    if post.user_id != current_user.id and current_user.role != UserRoles.moderator.value:
         raise HTTPException(status_code=403, detail="Not authorized to delete this post.")
 
     # Clean up Supabase Storage objects

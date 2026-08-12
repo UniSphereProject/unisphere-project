@@ -14,6 +14,7 @@ class PostAuthorOut(BaseModel):
     name: str
     profile_image_url: str | None = None
     role: str = "student"
+    batch: str | None = None
 class CommunityBrief(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -66,6 +67,7 @@ class PostOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    user_id: int
     title: str
     body: str | None
     community_id: int

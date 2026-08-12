@@ -34,6 +34,8 @@ def change_role(
     user = db.query(User).filter(User.id == payload.id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if payload.id == current.id and payload.role.value != "moderator":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot change your own role away from moderator.")
     current_role=user.role
     new_role = payload.role
     user.role = new_role

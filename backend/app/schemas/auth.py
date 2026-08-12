@@ -53,7 +53,7 @@ class TokenData(BaseModel):
     id:Optional[str]=None
     scope: Optional[str] = None
 class UserRole(str, Enum):
-    user = "user"
+    user = "student"
     moderator = "moderator"
     teacher = "teacher"
 class UserRoleUpdate(BaseModel):

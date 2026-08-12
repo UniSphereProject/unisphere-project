@@ -17,3 +17,5 @@ backend/docs/BACKEND_REVIEW_README.md
 __pycache__/
 docs
 backend.zip
+tests
+app/utils/minio_client.py

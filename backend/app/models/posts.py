@@ -14,6 +14,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import TimestampMixin
 from app.models.database import Base
+from app.models.communities import Community
+from app.models.user import User
+
 
 
 class Post(Base,TimestampMixin):
@@ -53,14 +56,17 @@ class Post(Base,TimestampMixin):
     extra_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # Relationships
     user = relationship(
-    "User",
+    User,
     back_populates="post_entries",
     foreign_keys=[user_id]
 )
-    community = relationship("Community", back_populates="posts")
-    reactions = relationship("PostReaction", back_populates="post", cascade="all, delete-orphan")
-    comments = relationship("PostComment", back_populates="post", cascade="all, delete-orphan")
-    verifications = relationship("VerificationRecord", back_populates="post", cascade="all, delete-orphan")
+    community = relationship(
+    "app.models.communities.Community",
+    back_populates="posts"
+    )
+    reactions = relationship("app.models.post_interaction.PostReaction", back_populates="post", cascade="all, delete-orphan")
+    comments = relationship("app.models.post_interaction.PostComment", back_populates="post", cascade="all, delete-orphan")
+    verifications = relationship("app.models.verification_record.VerificationRecord", back_populates="post", cascade="all, delete-orphan")
 
     # Table Constraints & Composite Indexes
     __table_args__ = (
