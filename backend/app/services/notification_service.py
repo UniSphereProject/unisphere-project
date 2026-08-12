@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 from sqlalchemy import select
@@ -79,7 +77,7 @@ def _deliver(
 def _match_found_email_html(user_name: str, own_post: Post, other_post: Post, score: float) -> str:
     return f"""
     <html><body style="font-family: Arial, sans-serif; color: #333;">
-      <h2>🔍 Possible match for your Lost &amp; Found post!</h2>
+      <h2> Possible match for your Lost &amp; Found post!</h2>
       <p>Hi {user_name},</p>
       <p>Our AI matching system found a post that may match yours:</p>
       <table style="border-collapse: collapse; margin: 12px 0;">
@@ -105,7 +103,7 @@ def _match_found_email_html(user_name: str, own_post: Post, other_post: Post, sc
 
 
 def _decision_email_html(user_name: str, decision: str, lost_title: str, found_title: str) -> str:
-    verdict = "confirmed ✔" if decision == "confirmed" else "rejected ✖"
+    verdict = "confirmed" if decision == "confirmed" else "rejected "
     return f"""
     <html><body style="font-family: Arial, sans-serif; color: #333;">
       <h2>Lost &amp; Found match {verdict}</h2>
@@ -121,69 +119,76 @@ def _decision_email_html(user_name: str, decision: str, lost_title: str, found_t
 
 
 def notify_match_found(db: Session, match: MatchRecord) -> None:
-    """Notify BOTH users involved in a fresh AI match (idempotent)."""
-    if match.notified:
-        return
+    """Notify the user who reported the LOST item about a fresh AI match (idempotent).
 
-    lost_post = db.get(Post, match.lost_post_id)
-    found_post = db.get(Post, match.found_post_id)
-    if lost_post is None or found_post is None:
-        return
+    Only the lost-item reporter is notified here — they're the one who needs
+    to confirm "yes, this is my item". The finder is intentionally not looped
+    in yet; they only hear about it once a moderator makes the final call
+    (see notify_match_moderator_decision). This mirrors the review flow:
+    match found -> notify lost-report owner -> owner confirms -> notify
+    moderators -> moderator decision -> notify both users.
+    """
+    try:
+        if match.notified:
+            return
 
-    pairs = [
-        (lost_post.user, lost_post, found_post),   # loser sees the found post
-        (found_post.user, found_post, lost_post),  # finder sees the lost post
-    ]
-    for user, own_post, other_post in pairs:
+        lost_post = db.get(Post, match.lost_post_id)
+        found_post = db.get(Post, match.found_post_id)
+        if lost_post is None or found_post is None:
+            match.notified = True
+            db.commit()
+            return
+
+        user = lost_post.user
         if user is None:
-            continue
-        _deliver(
-            db,
-            user,
-            type="match_found",
-            title="Possible match for your Lost & Found post",
-            body=(
-                f"Your post '{own_post.title}' may match "
-                f"'{other_post.title}' ({round(match.combined_score * 100)}% confidence). "
-                f"Please review and confirm."
-            ),
-            match_id=match.id,
-            post_id=other_post.id,
-            email_subject="🔍 Possible Lost & Found match on Campus Connect",
-            email_html=_match_found_email_html(
-                user.name, own_post, other_post, match.combined_score
-            ),
-        )
+            match.notified = True
+            db.commit()
+            return
 
-    match.notified = True
-    db.commit()
+        try:
+            _deliver(
+                db,
+                user,
+                type="match_found",
+                title="Possible match for your Lost & Found post",
+                body=(
+                    f"Your post '{lost_post.title}' may match "
+                    f"'{found_post.title}' ({round(match.combined_score * 100)}% confidence). "
+                    f"Please review and confirm."
+                ),
+                match_id=match.id,
+                post_id=found_post.id,
+                email_subject=" Possible Lost & Found match on Unisphere",
+                email_html=_match_found_email_html(
+                    user.name, lost_post, found_post, match.combined_score
+                ),
+            )
+        except Exception as exc:
+            logger.warning("Failed to notify user %s for match %s: %s", user.id, match.id, exc)
+
+        match.notified = True
+        db.commit()
+    except Exception as exc:
+        logger.exception("Unexpected error in notify_match_found for match %s: %s", match.id, exc)
+        try:
+            match.notified = True
+            db.commit()
+        except Exception:
+            db.rollback()
 
 
 def notify_match_user_confirmed(db: Session, match: MatchRecord, confirming_user: User) -> None:
-    """User confirmed the match → notify the other user and all moderators."""
+    """Lost-report owner confirmed "Yes, this is my item" -> notify moderators only.
+
+    The finder is intentionally NOT notified at this stage — they only learn
+    about the match once a moderator has made the final call (see
+    notify_match_moderator_decision).
+    """
     lost_post = db.get(Post, match.lost_post_id)
     found_post = db.get(Post, match.found_post_id)
     if lost_post is None or found_post is None:
         return
 
-    other_user = (
-        found_post.user if confirming_user.id == lost_post.user_id else lost_post.user
-    )
-    if other_user is not None:
-        _deliver(
-            db,
-            other_user,
-            type="match_user_confirmed",
-            title="A Lost & Found match was confirmed by the other user",
-            body=(
-                f"{confirming_user.name} confirmed the match between "
-                f"'{lost_post.title}' and '{found_post.title}'. "
-                f"A moderator will now do the final verification."
-            ),
-            match_id=match.id,
-        )
-
-    # Moderators need to do the final confirmation
     moderators = db.scalars(select(User).where(User.role == "moderator")).all()
     for mod in moderators:
         _deliver(
@@ -193,7 +198,7 @@ def notify_match_user_confirmed(db: Session, match: MatchRecord, confirming_user
             title="Lost & Found match awaiting final confirmation",
             body=(
                 f"Match #{match.id}: '{lost_post.title}' ↔ '{found_post.title}' "
-                f"was confirmed by a user and needs moderator review."
+                f"was confirmed by {confirming_user.name} and needs moderator review."
             ),
             match_id=match.id,
         )
@@ -220,7 +225,7 @@ def notify_match_moderator_decision(db: Session, match: MatchRecord, decision: s
                 f"was {verdict_word} by a moderator."
             ),
             match_id=match.id,
-            email_subject=f"Lost & Found match {verdict_word} — Campus Connect",
+            email_subject=f"Lost & Found match {verdict_word} Unisphere",
             email_html=_decision_email_html(
                 user.name, verdict_word, lost_post.title, found_post.title
             ),
