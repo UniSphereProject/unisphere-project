@@ -1,4 +1,4 @@
-# Discussion Forum Backend
+# Main Backend
 
 ## Environment Variables (.env)
 
