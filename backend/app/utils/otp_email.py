@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import secrets
 import string
 from typing import Optional, Dict, Any
 
@@ -14,8 +15,9 @@ logger = get_logger(__name__)
 
 def generate_otp(length: int = 6) -> str:
     """Generate an alphanumeric OTP code."""
-    chars = string.ascii_uppercase + string.digits
-    return "".join(random.choices(chars, k=length))
+
+    return ''.join(str(secrets.randbelow(10)) for _ in range(length))
+
 
 
 def send_email_via_brevo(to_email: str, subject: str, html_content: str) -> bool:

@@ -7,8 +7,10 @@ class VerifyOtp(BaseModel):
     email:EmailStr
     code:str
 class ResetPass(BaseModel):
-    reset_token:str
     new_password:str
 
 class Otp(BaseModel):
     otp:str
+class ChangePass(BaseModel):
+    current_password:str
+    new_password:str

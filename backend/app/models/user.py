@@ -4,14 +4,17 @@ from sqlalchemy import Column, Integer, String,Boolean,ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP, Enum as SQLEnum
-
 from app.models.base import TimestampMixin
 from app.models.database import Base
+from app.models.otp import OTP
+from app.models.student_detail import StudentDetail
+from app.models.token import RefreshToken
+from app.models.post_interaction import PostReaction, PostComment, CommentReaction
 
 class UserRoles(Enum):
     student = "student"
-    teacher= "teacher"
-    moderator="moderator"
+    teacher = "teacher"
+    moderator = "moderator"
 class User(Base,TimestampMixin):
     __tablename__="users"
 
@@ -28,6 +31,21 @@ class User(Base,TimestampMixin):
         uselist=False,  #  One-to-one
         cascade="all, delete-orphan"
     )
+    refresh_tokens = relationship("RefreshToken", back_populates="user")
+    profile_image_url = Column(String, nullable=True)
+    profile_image_file_id = Column(String, nullable=True)
+    reactions = relationship("app.models.post_interaction.PostReaction", back_populates="user")
+    comments = relationship("app.models.post_interaction.PostComment", back_populates="user")
+    comment_reactions = relationship("app.models.post_interaction.CommentReaction", back_populates="user")
+    post_entries = relationship(
+        "app.models.posts.Post",
+        back_populates="user",
+        foreign_keys="[Post.user_id]"
+    )
+
+
+
+
 
 
 
